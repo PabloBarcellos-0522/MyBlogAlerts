@@ -1,7 +1,8 @@
-
 import os
+from typing import List
 from dotenv import load_dotenv
 import psycopg2
+
 
 class Connection:
     def __init__(self):
@@ -22,6 +23,10 @@ class Connection:
         self.cur.execute('SET search_path TO "MyBlogAlerts"')
         self.cur.execute(query)
 
-    def send(self) -> tuple:
+    def catch(self) -> tuple:
         result = self.cur.fetchone()
+        return result
+
+    def catch_all(self) -> List[tuple]:
+        result = self.cur.fetchall()
         return result
