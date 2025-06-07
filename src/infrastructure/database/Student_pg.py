@@ -1,7 +1,6 @@
 from typing import List
-from src.domain.models.Student import Student
-from src.domain.repositories.Student_Repository import StudentRepository
-from Connection import Connection
+from src.domain.repositories.Student_Repository import StudentRepository, Student
+from src.infrastructure.database.Connection import Connection
 
 
 class StudentDatabase(StudentRepository):
@@ -29,7 +28,7 @@ class StudentDatabase(StudentRepository):
         query = f'''
             UPDATE student
             SET "Phone_Number" = '{new_phone}'
-            WHERE "Phone_Number" = '{student.Phone_Number}';
+            WHERE "idStudent" = '{student.Id_Student}';
         '''
 
         try:
@@ -42,7 +41,7 @@ class StudentDatabase(StudentRepository):
         query = f'''
             UPDATE student
             SET "Password" = '{password}'
-            WHERE "Phone_Number" = '{student.Phone_Number}';
+            WHERE "idStudent" = '{student.Id_Student}';
         '''
 
         try:
@@ -55,12 +54,12 @@ class StudentDatabase(StudentRepository):
         query = f'''
             UPDATE student
             SET "Registration" = '{registration}'
-            WHERE "Phone_Number" = '{student.Phone_Number}';
+            WHERE "idStudent" = '{student.Id_Student}';
         '''
 
         try:
             with Connection() as db:
-                db.run_query("SELECT * FROM student")
+                db.run_query(query)
         finally:
             pass
 
@@ -68,19 +67,19 @@ class StudentDatabase(StudentRepository):
         query = f'''
             UPDATE student
             SET "Name" = '{name}'
-            WHERE "Phone_Number" = '{student.Phone_Number}';
+            WHERE "idStudent" = '{student.Id_Student}';
         '''
 
         try:
             with Connection() as db:
-                db.run_query("SELECT * FROM student")
+                db.run_query(query)
         finally:
             pass
 
     def delete(self, student: Student) -> None:
         query = f'''
             DELETE FROM student 
-            WHERE "Phone_Number" = '{student.Phone_Number}';
+            WHERE "idStudent" = '{student.Id_Student}';
         '''
 
         try:
