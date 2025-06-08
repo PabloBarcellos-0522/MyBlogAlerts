@@ -8,8 +8,8 @@ from src.infrastructure.database.Connection import Connection
 class PostDatabase(PostRepository):
 
     def save(self, post: Post) -> None:
-        values = (post.Post_date, post.Post_Url, post.Discipline_id)
-        query = 'INSERT INTO post ("Post_Date", "Post_Url", "Discipline_id") VALUES ' + str(values)
+        values = (post.Post_date, post.Post_Url, post.Discipline_id, post.Content)
+        query = 'INSERT INTO post ("Post_Date", "Post_Url", "Discipline_id", "Text_Content") VALUES ' + str(values)
 
         try:
             with Connection() as db:
