@@ -1,8 +1,9 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
 class Discipline:
-    idDiscipline: int
     Name: str
     Id_Cipto: str
+    idDiscipline: Optional[int] = None
