@@ -1,10 +1,11 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
 class Student:
-    Id_Student: int
     Phone_Number: str
     Registration: str
     Password: str
-    Name: str
+    Id_Student: Optional[int] = None
+    Name: Optional[str] = None
