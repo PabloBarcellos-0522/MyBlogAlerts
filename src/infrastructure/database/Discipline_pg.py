@@ -1,6 +1,6 @@
 from typing import List
 from src.domain.repositories.Discipline_Repository import DisciplineRepository, Discipline
-from Connection import Connection
+from src.infrastructure.database.Connection import Connection
 
 
 class DisciplineDatabase(DisciplineRepository):
