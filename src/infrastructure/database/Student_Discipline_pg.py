@@ -3,7 +3,7 @@ from src.domain.repositories.Student_Discipline_Repository import StudentDiscipl
 from src.infrastructure.database.Connection import Connection
 
 
-class StudentDatabase(StudentDisciplineRepository):
+class StudentDisciplineDatabase(StudentDisciplineRepository):
     def save(self, stu_disc: StudentDiscipline) -> None:
         values = (stu_disc.Id_Student, stu_disc.Id_Discupline)
         query = 'INSERT INTO student_discipline ("Student_idStudent", "Discipline_idDiscipline") VALUES ' + str(values)

@@ -25,6 +25,7 @@ class Utils:
         disciplines = []
         for i in data.json():
             disc_name = i['NomeDisciplina']
+            disc_name = str(disc_name).replace('\t', '')
             disc_id = i['IdBlogPostCripto']
 
             new_discipline = Discipline(Name=disc_name, Id_Cipto=disc_id)
@@ -55,13 +56,19 @@ class Utils:
             date += str(datetime.date.today().year)
             date = datetime.datetime.strptime(date, format_date)
 
-            title = i.find('h3', class_='panel-title').text
-            url = i.find_all('a')[-1].text
+            title = i.find(class_='panel-title').text
+            title = title.replace("'", "''")
+            title = title.replace('"', '""')
+            url = ('https://aluno.uvv.br' + i.find('a', class_='btn')['href'])
 
-            msg = ''
-            for j in i.find('div', class_='panel-body').find('p').find_all('p'):
-                msg += ('\n' + j.text)
-            txt = title + '\n' + msg
+            msg = i.find('div', class_='panel-body').text
+            txt = title + '          ' + msg
+            txt = txt.replace('\n', "    ")
+            txt = txt.replace('.', '. ')
+            txt = txt.replace("'", "''")
+            txt = txt.replace('"', '""')
+            txt = txt.replace('Visualizar Post', '')
+
 
             new_post = Post(date, url, discipline.idDiscipline, txt)
             posts_list.append(new_post)

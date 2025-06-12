@@ -1,20 +1,20 @@
+from typing import List
 from bs4 import BeautifulSoup
+from src.domain.models import Post
 from src.domain.models.Discipline import Discipline
 from src.infrastructure.scraping.Scraping_Login import ScrapingLogin
 from src.infrastructure.scraping.Utils import Utils
 
 
 class CrawlerPosts:
-    def __init__(self):
-        self.page = ScrapingLogin()
+    def __init__(self, login: ScrapingLogin):
+        self.page = login
 
-    def get_posts(self, registration: str, password: str, discipline: Discipline):
-        self.page.login(registration, password)
-
+    def get_posts(self, discipline: Discipline) -> List[Post]:
         page = 0
         post_list = []
         while True:
-            resp = self.page.session.get(self.page.url_posts.format(discipline.Id_Cipto, page))
+            resp = self.page.session.get(self.page.url_posts.format(discipline.Id_Cipto, page), timeout=3)
             if not resp.text.strip():
                 break
 

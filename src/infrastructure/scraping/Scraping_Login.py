@@ -1,8 +1,5 @@
-from typing import List, Optional
 import requests
 from bs4 import BeautifulSoup
-from src.domain.models.Discipline import Discipline
-from src.infrastructure.scraping.Utils import Utils
 
 
 class ScrapingLogin:
