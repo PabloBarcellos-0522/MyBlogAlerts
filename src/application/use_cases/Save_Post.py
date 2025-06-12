@@ -27,7 +27,6 @@ class SavePost:
         self.scr_student_disciplines = {}
         self.scr_discipline_posts = {}
 
-
     def update_all_memory(self):
         print("update_all_memory")
         self.update_posts()
@@ -99,7 +98,6 @@ class SavePost:
         time.sleep(3)
         self.update_posts()
 
-
     def validate_scrap_discipline(self):
         print('validate_scrap_discipline')
         existing = []
@@ -129,9 +127,3 @@ class SavePost:
         for key in self.scr_discipline_posts.keys():
             for post in self.scr_discipline_posts[key]:
                 self.posts.save(post)
-
-
-a = SavePost()
-a.update_all_memory()
-a.search_scraping_disciplines()
-a.search_scraping_posts()
