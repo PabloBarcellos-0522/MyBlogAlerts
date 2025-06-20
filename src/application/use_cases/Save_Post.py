@@ -6,11 +6,12 @@ from src.infrastructure.database.Student_Discipline_pg import StudentDisciplineD
 from src.infrastructure.scraping.Scraping_Login import ScrapingLogin
 from src.infrastructure.scraping.Crawler_Posts import CrawlerPosts
 from src.infrastructure.scraping.Crawler_Disciplines import CrawlerDisciplines
-# from src.infrastructure.scraping.Crawler_Students import CrawlerStudents
+from src.application.services.Send_Whatsapp_Msg import SendMensage
 
 
 class SavePost:
     def __init__(self):
+        self.send = SendMensage()
         self.posts = PostDatabase()
         self.disciplines = DisciplineDatabase()
         self.students = StudentDatabase()
@@ -126,4 +127,6 @@ class SavePost:
                 self.scr_discipline_posts[key].remove(post)
         for key in self.scr_discipline_posts.keys():
             for post in self.scr_discipline_posts[key]:
+                print("Send new post...")
+                self.send.group_msg(str(post.Content))
                 self.posts.save(post)

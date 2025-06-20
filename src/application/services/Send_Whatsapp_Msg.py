@@ -24,7 +24,7 @@ class SendMensage(WhatsappConnect):
         response = self.connection.post(self.url, json=payload, headers=headers)
         return response.text.encode('utf8')
 
-    def group_msg(self, chat_id: int, msg: str):
+    def group_msg(self, msg: str):
         payload = {
             "chatId": str(self.group_id) + "@g.us",
             "message": msg,

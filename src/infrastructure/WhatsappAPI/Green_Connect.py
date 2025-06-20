@@ -6,4 +6,4 @@ class WhatsappConnect(ABC):
     def student_msg(self, phone: str, msg: str): pass
 
     @abstractmethod
-    def group_msg(self, chat_id: int, msg: str): pass
+    def group_msg(self, msg: str): pass
