@@ -11,6 +11,9 @@ class StudentDisciplineRepository(ABC):
     def get_students_disciplines(self) -> List[tuple]: pass
 
     @abstractmethod
+    def get_this_student(self, stu_id: int) -> List[tuple]: pass
+
+    @abstractmethod
     def chage_student(self, stu_disc: StudentDiscipline, new_id: int) -> None: pass
 
     @abstractmethod
