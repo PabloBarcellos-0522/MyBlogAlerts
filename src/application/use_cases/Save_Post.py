@@ -107,6 +107,13 @@ class SavePost:
                 for s_discipline in self.saved_disciplines:
                     if (discipline.Name == s_discipline.Name) and (discipline.Id_Cipto == s_discipline.Id_Cipto):
                         existing.append(discipline)
+                        stu_disc = StudentDiscipline(student_id, s_discipline.idDiscipline)
+                        for i in self.saved_students_disciplines:
+                            if (i.Id_Student == stu_disc.Id_Student) and (i.Id_Discupline == stu_disc.Id_Discupline):
+                                break
+                        else:
+                            self.students_disciplines.save(stu_disc)
+                            self.saved_students_disciplines.append(stu_disc)
         for key in self.scr_student_disciplines.keys():
             for disc in existing:
                 self.scr_student_disciplines[key].remove(disc)
