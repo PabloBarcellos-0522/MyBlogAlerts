@@ -8,9 +8,7 @@ class SaveStudent:
     def __init__(self):
         self.page = ScrapingLogin()
         self.stu_data = StudentDatabase()
-        # self.disc_data = DisciplineDatabase()
         self.stu_disc_data = StudentDisciplineDatabase()
-        # self.post_data = PostDatabase()
 
     def new_student(self, phone: str, registration: str, password: str) -> Student | str:
         stu = Student(phone, registration, password)
