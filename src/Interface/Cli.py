@@ -29,3 +29,41 @@ if __name__ == "__main__":
 
     threading.Thread(target=crawler_faculty, daemon=True).start()
 
+    # New student
+    while True:
+        input('Press any key')
+
+        print('-----Students-----\n')
+        option = input('Register or Delete:  0|1 ? ')
+        if option == '0':
+            print('-----Register-----\n')
+            phone = input('Phone: ')
+            faculty_registration = input('Login Registration: ')
+            password = input('Password: ')
+
+            print(phone, faculty_registration, password)
+            print('Correct Data? ')
+            resp = input('S | N: ')
+            if resp != 'n' or resp != 'N':
+                stu = register_student.new_student(phone, faculty_registration, password)
+                if type(stu) == Student:
+                    sleep(3)
+                    use_case.update_students()
+                else: print('error: \n' + str(stu))
+            else:
+                print('Canceled Operation!')
+
+        elif option == '1':
+            print('-----Delete-----\n')
+            faculty_registration = input('Login Registration: ')
+
+            print(faculty_registration)
+            print('Correct Data? ')
+            resp = input('S | N: ')
+            if resp == 's' or resp == 'S':
+                register_student.del_student(faculty_registration)
+                sleep(3)
+                use_case.update_students()
+            else:
+                print('Canceled Operation!')
+        else: print('Invalid Operation!')
