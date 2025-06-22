@@ -37,6 +37,8 @@ class SavePost:
 
     def update_posts(self):
         print('update_posts')
+
+        list_posts = []
         for post in self.posts.get_posts():
             id_p = post[0]
             date = post[1]
@@ -44,19 +46,25 @@ class SavePost:
             discipline_id = post[3]
             content = post[4]
 
-            self.saved_posts.append(Post(date, url, discipline_id, content, id_p))
+            list_posts.append(Post(date, url, discipline_id, content, id_p))
+        self.saved_posts = list_posts
 
     def update_disciplines(self):
         print('update_disciplines')
+
+        list_disc = []
         for disc in self.disciplines.get_disciplines():
             id_d = disc[0]
             name = disc[1]
             id_crip = disc[2]
 
-            self.saved_disciplines.append(Discipline(name, id_crip, id_d))
+            list_disc.append(Discipline(name, id_crip, id_d))
+        self.saved_disciplines = list_disc
 
     def update_students(self):
         print('update_students')
+
+        list_students = []
         for stu in self.students.get_students():
             id_s = stu[0]
             phone = stu[1]
@@ -64,15 +72,19 @@ class SavePost:
             name = stu[3]
             registration = stu[4]
 
-            self.saved_students.append(Student(phone, registration, password, id_s, name))
+            list_students.append(Student(phone, registration, password, id_s, name))
+        self.saved_students = list_students
 
     def update_students_disciplines(self):
         print('update_students_disciplines')
+
+        list_disc_posts = []
         for stu in self.students_disciplines.get_students_disciplines():
             id_s = stu[0]
             id_d = stu[1]
 
-            self.saved_students_disciplines.append(StudentDiscipline(id_s, id_d))
+            list_disc_posts.append(StudentDiscipline(id_s, id_d))
+        self.saved_students_disciplines = list_disc_posts
 
     def search_scraping_disciplines(self):
         print('search_scraping_disciplines')
@@ -127,13 +139,24 @@ class SavePost:
         for disc_id in self.scr_discipline_posts.keys():
             for post in self.scr_discipline_posts[disc_id]:
                 for s_post in self.saved_posts:
-                    if (post.Post_date == s_post.Post_date) and (post.Post_Url == s_post.Post_Url) and (post.Discipline_id == s_post.Discipline_id):
+                    day = post.Post_date.day == s_post.Post_date.day
+                    month = post.Post_date.month == s_post.Post_date.month
+                    year = post.Post_date.year == s_post.Post_date.year
+
+                    if day and month and year and (post.Post_Url == s_post.Post_Url) and (post.Discipline_id == s_post.Discipline_id):
                         existing.append(post)
+                        break
         for key in self.scr_discipline_posts.keys():
             for post in existing:
-                self.scr_discipline_posts[key].remove(post)
+                if post in self.scr_discipline_posts[key]:
+                    self.scr_discipline_posts[key].remove(post)
         for key in self.scr_discipline_posts.keys():
             for post in self.scr_discipline_posts[key]:
                 print("Send new post...")
-                print(self.send.group_msg(str(post.Content)))
+                disc_name = None
+                for disc in self.saved_disciplines:
+                    if disc.idDiscipline == key:
+                        disc_name = disc.Name
+                print(self.send.group_msg(disc_name + ":\n" + str(post.Content)))
+                time.sleep(0.5)
                 self.posts.save(post)
