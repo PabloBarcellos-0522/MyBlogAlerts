@@ -1,4 +1,4 @@
-# Utilize psycopg2==2.9.10 apênas se a opção psycopg2-binary não funcionar
+# Use psycopg2==2.9.10 only if option psycopg2-binary does not work
 psycopg2-binary~=2.9.10
 python-dotenv==1.1.0
 requests~=2.32.3
