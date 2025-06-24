@@ -51,57 +51,99 @@ da green_API com chaves de APIs armazenadas via `.env`.
 -------
 @startuml
 package Interface {
-class CLI
+class Cli
 }
 
 package Application {
-class SalvarPostagem
-class SalvarAluno
+class Save_Post
+class Save_Student
+class Send_Whatsapp_Msg
 }
 
 package Domain {
-interface PostagemRepository
-interface StudentRepository
-class Postagem
+interface Post_Repository
+interface Student_Repository
+interface Discipline_Repository
+interface Student_discipline_Repository`
+class Post
 class Student
+class Discipline
+class Student_Discipline
 }
 
-package Infrastructure {
-class PostagemPG
-class StudentPG
-class CrawlerFaculdade
-class DBPool
+package Infrastructure\database {
+class Connection
+class Discipline_pg
+class Post_pg
+class Student_pg
+class Student_Discipline_pg
 }
 
-CLI --> SalvarPostagem
-CLI --> SalvarAluno
-SalvarPostagem --> PostagemRepository
-SalvarAluno --> StudentRepository
-PostagemPG --> DBPool
-StudentPG --> DBPool
+package Infrastructure\scraping {
+class Crawler_Disciplines
+class Crawler_Posts
+class Crawler_Students
+class Crawler_Login
+class Utils
+}
+
+package Infrastructure\scraping {
+class Green_Connect
+}
+
+CLI --> SavePost, SaveStudent
+SavePost --> All databases, SendMensage, ScrapingLogin, CrawlerPosts, CrawlerDisciplines
+SaveStudent --> StudentDatabase, ScrapingLogin, StudentDisciplineDatabase
+StudentDatabase --> Connection, StudentRepository, Student
+DisciplineDatabase --> Connection, DisciplineRepository, Discipline
+PostDatabase --> Connection, PostRepository, Post, Discipline
+StudentDisciplineDatabase --> Connection, StudentDisciplineRepository, StudentDiscipline
+SendMensage --> WhatsappConnect
 CrawlerFaculdade --> Postagem
+CrawlerPosts --> ScrapingLogin
+CrawlerDisciplines --> ScrapingLogin
 @enduml
-
+-------
 
 Banco de dados (simplificado):
 
-```sql
-CREATE TABLE student (
-    id SERIAL PRIMARY KEY,
-    phone_number TEXT,
-    password TEXT,
-    registration TEXT,
-    name TEXT
+[source,sql]
+----
+CREATE SCHEMA MyBlogAlerts;
+
+CREATE TABLE MyBlogAlerts.Student (
+    idStudent INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    Phone_Number VARCHAR(15),
+    Password VARCHAR(25),
+    Name VARCHAR(50),
+    Registration VARCHAR(25)
 );
 
-CREATE TABLE postagens (
-    id TEXT PRIMARY KEY,
-    titulo TEXT,
-    url TEXT,
-    data_publicacao TIMESTAMP
+CREATE TABLE MyBlogAlerts.discipline (
+    idDiscipline INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    Name VARCHAR NOT NULL,
+    Id_Cripto VARCHAR NOT NULL
 );
-```
--------
+
+CREATE TABLE MyBlogAlerts.post (
+    idPost SERIAL PRIMARY KEY,
+    Post_Date DATE,
+    Post_Url VARCHAR(100),
+    Discipline_id INTERGER NOT NULL,
+    Text_Content VARCHAR
+
+    CONSTRAINT FK_Discipline FOREIGN KEY (Discipline_id) REFERENCES discipline(idDiscipline)
+);
+
+CREATE TABLE MyBlogAlerts.student_discipline (
+    Student_idStudent INTEGER PRIMARY KEY,
+    Discipline_idDiscipline INTEGER PRIMARY KEY
+
+    CONSTRAINT FK_Student FOREIGN KEY (Student_idStudent) REFERENCES MyBlogAlerts.student (idStudent)
+    CONSTRAINT FK_Discipline FOREIGN KEY (Discipline_idDiscipline) REFERENCES MyBlogAlerts.discipline (idDiscipline)
+);
+----
+
 
 == Implementation
 
