@@ -151,12 +151,12 @@ class SavePost:
                 if post in self.scr_discipline_posts[key]:
                     self.scr_discipline_posts[key].remove(post)
         for key in self.scr_discipline_posts.keys():
-            for post in self.scr_discipline_posts[key]:
+            for post in reversed(self.scr_discipline_posts[key]):
                 print("Send new post...")
                 disc_name = None
                 for disc in self.saved_disciplines:
                     if disc.idDiscipline == key:
                         disc_name = disc.Name
-                print(self.send.group_msg(disc_name + ":\n" + str(post.Content)))
+                print(self.send.group_msg(disc_name + ":\n" + post.Content + '\nUrl: ' + post.Post_Url))
                 time.sleep(0.5)
                 self.posts.save(post)
