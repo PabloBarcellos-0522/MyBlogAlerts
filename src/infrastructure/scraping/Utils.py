@@ -52,24 +52,42 @@ class Utils:
             date = i.find('div', class_='timeline-date').text
             locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
             format_date = '%d %b %Y'
-            date += ' '
-            date += str(datetime.date.today().year)
+            date += ' ' + str(datetime.date.today().year)
             date = datetime.datetime.strptime(date, format_date)
 
             title = i.find(class_='panel-title').text
-            title = title.replace("'", "''")
-            title = title.replace('"', '""')
-            url = ('https://aluno.uvv.br' + i.find('a', class_='btn')['href'])
+            title = title.replace("'", "''").replace('"', '""')
+            url = 'https://aluno.uvv.br' + i.find('a', class_='btn')['href']
 
-            msg = i.find('div', class_='panel-body').text
-            txt = title + '          ' + msg
-            txt = txt.replace('\n', "    ")
-            txt = txt.replace('.', '. ')
-            txt = txt.replace("'", "''")
-            txt = txt.replace('"', '""')
-            txt = txt.replace('Visualizar Post', '')
+            panel_body = i.find('div', class_='panel-body')
 
+            # Remover elementos indesejados
+            for unwanted in panel_body.find_all(['a', 'script', 'style']):
+                unwanted.decompose()
+
+            # Função auxiliar para extrair texto recursivamente
+            def extract_text(element):
+                texts = []
+                for child in element.children:
+                    if child.name == 'br':
+                        texts.append('\n')
+                    elif child.name is None:  # Text node
+                        text = child.strip()
+                        if text:
+                            texts.append(text)
+                    else:
+                        texts.append(extract_text(child))
+                return ' '.join(texts)
+
+            raw_text = extract_text(panel_body)
+
+            msg = raw_text.replace(' .', '.').replace(' ,', ',')
+            msg = '\n'.join(line.strip() for line in msg.split('\n') if line.strip())
+
+            txt = f"{title}:\n{msg}"
+            txt = txt.replace("'", "''").replace('"', '""')
 
             new_post = Post(date, url, discipline.idDiscipline, txt)
             posts_list.append(new_post)
+
         return posts_list
