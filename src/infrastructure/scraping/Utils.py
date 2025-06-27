@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 from requests import Response
 from src.domain.models.Post import Post
 from src.domain.models.Discipline import Discipline
+from dotenv import load_dotenv
+import os
 import locale
 
 
@@ -57,7 +59,9 @@ class Utils:
 
             title = i.find(class_='panel-title').text
             title = title.replace("'", "''").replace('"', '""')
-            url = 'https://aluno.uvv.br' + i.find('a', class_='btn')['href']
+
+            load_dotenv()
+            url = os.getenv('BLOG_URL') + i.find('a', class_='btn')['href']
 
             panel_body = i.find('div', class_='panel-body')
 

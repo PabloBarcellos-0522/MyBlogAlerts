@@ -1,13 +1,16 @@
 import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+import os
 
 
 class ScrapingLogin:
     def __init__(self):
-        self.url = 'https://aluno.uvv.br/'
-        self.url_logout = 'https://aluno.uvv.br/Aluno/Logout'
-        self.url_disciplines = 'https://aluno.uvv.br/Ajax/GetSujectList/?year={}&semester={}'
-        self.url_posts = 'https://aluno.uvv.br/Aluno/BlogCarregarMais/?parametros={}&pageSize=3&pageNumber={}&filter='
+        load_dotenv()
+        self.url = os.getenv('BLOG_URL')
+        self.url_logout = self.url + '/Aluno/Logout'
+        self.url_disciplines = self.url + '/Ajax/GetSujectList/?year={}&semester={}'
+        self.url_posts = self.url + '/Aluno/BlogCarregarMais/?parametros={}&pageSize=3&pageNumber={}&filter='
         self.resp = None
         self.json_data = None
         self.html = None

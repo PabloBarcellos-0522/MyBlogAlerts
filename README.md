@@ -47,9 +47,10 @@ pip install -r requirements.txt
 - Crie um arquivo .env na raiz com:
 
 ```env
-DATABASE_URL=postgresql://usuario:senha@host:port/db
-WHATSAPP_API_KEY=suachave
-GROUP_ID=idgrupo_whatsapp
+DATABASE_URL = postgresql://usuario:senha@host:port/db
+WHATSAPP_API_KEY = suachave
+GROUP_ID = idgrupo_whatsapp
+BLOG_URL = Url principal do portal do aluno, EX: (https://aluno.uvv.br/)
 ```
 
 ### 3. Execute o projeto
