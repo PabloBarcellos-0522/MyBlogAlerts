@@ -48,7 +48,7 @@ pip install -r requirements.txt
 
 ```env
 DATABASE_URL = postgresql://usuario:senha@host:port/db
-WHATSAPP_API_KEY = suachave
+API_URL = suachave_greenAPI
 GROUP_ID = idgrupo_whatsapp
 BLOG_URL = Url principal do portal do aluno, EX: (https://aluno.uvv.br/)
 ```
