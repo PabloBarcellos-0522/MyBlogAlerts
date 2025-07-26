@@ -42,8 +42,11 @@ class Utils:
                 url_id = card.find('a').find_next('a').get('href').split('=')[1]
                 posts.append(url_id)
             else:
-                url_id = card.find('a').get('href').split('=')[1]
-                posts.append(url_id)
+                try:
+                    url_id = card.find('a').get('href').split('=')[1]
+                    posts.append(url_id)
+                except IndexError:
+                    print('\nDisciplina sem link encontrada!\n')
         return posts[0]
 
     @staticmethod
