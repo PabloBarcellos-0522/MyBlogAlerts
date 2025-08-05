@@ -121,7 +121,7 @@ class SavePost:
                         existing.append(discipline)
                         stu_disc = StudentDiscipline(student_id, s_discipline.idDiscipline)
                         for i in self.saved_students_disciplines:
-                            if (i.Id_Student == stu_disc.Id_Student) and (i.Id_Discipline == stu_disc.Id_Discipline):
+                            if (i.Id_Student == stu_disc.Id_Student) and (i.Id_Discipline == stu_disc.Id_Discipline) and stu_disc.Id_Discipline is not None:
                                 break
                         else:
                             self.students_disciplines.save(stu_disc)
