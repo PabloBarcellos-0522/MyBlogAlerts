@@ -17,18 +17,26 @@ class ScrapingLogin:
         self.session = requests.session()
 
     def login(self, registration: str, password: str):
-        self.json_data = {
-            "Matricula": registration,
-            "password": password
-        }
+        try:
+            self.json_data = {
+                "Matricula": registration,
+                "password": password
+            }
 
-        self.resp = self.session.post(self.url, data=self.json_data)
-        if self.resp.status_code == 200:
-            self.html = BeautifulSoup(self.resp.content, 'html.parser')
-        return self.html
+            self.resp = self.session.post(self.url, data=self.json_data)
+            if self.resp.status_code == 200:
+                self.html = BeautifulSoup(self.resp.content, 'html.parser')
+            return self.html
+        except requests.exceptions.RequestException as e:
+            print(f"Erro de rede: {e}\n\nSeguindo programa. . .")
+            return None
 
     def logout(self):
-        self.resp = self.session.get(self.url_logout)
-        if self.resp.status_code == 200:
-            self.html = BeautifulSoup(self.resp.content, 'html.parser')
-        return self.html
+        try:
+            self.resp = self.session.get(self.url_logout)
+            if self.resp.status_code == 200:
+                self.html = BeautifulSoup(self.resp.content, 'html.parser')
+            return self.html
+        except requests.exceptions.RequestException as e:
+            print(f"Erro de rede: {e}\n\nSeguindo programa. . .")
+            return None

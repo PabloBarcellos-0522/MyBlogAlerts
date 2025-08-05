@@ -12,27 +12,35 @@ class SendMensage(WhatsappConnect):
         self.group_id = os.getenv('GROUP_ID')
 
     def student_msg(self, phone: str, msg: str):
-        payload = {
-            "chatId": phone + "@c.us",
-            "message": msg,
-            "linkPreview": False
-        }
-        headers = {
-            'Content-Type': 'application/json'
-        }
+        try:
+            payload = {
+                "chatId": phone + "@c.us",
+                "message": msg,
+                "linkPreview": False
+            }
+            headers = {
+                'Content-Type': 'application/json'
+            }
 
-        response = self.connection.post(self.url, json=payload, headers=headers)
-        return response.text.encode('utf8')
+            response = self.connection.post(self.url, json=payload, headers=headers)
+            return response.text.encode('utf8')
+        except requests.exceptions.RequestException as e:
+            print(f"Erro de rede: {e}\n\nSeguindo programa. . .")
+            return None
 
     def group_msg(self, msg: str):
-        payload = {
-            "chatId": str(self.group_id) + "@g.us",
-            "message": msg,
-            "linkPreview": False
-        }
-        headers = {
-            'Content-Type': 'application/json'
-        }
+        try:
+            payload = {
+                "chatId": str(self.group_id) + "@g.us",
+                "message": msg,
+                "linkPreview": False
+            }
+            headers = {
+                'Content-Type': 'application/json'
+            }
 
-        response = self.connection.post(self.url, json=payload, headers=headers)
-        return response.text.encode('utf8')
+            response = self.connection.post(self.url, json=payload, headers=headers)
+            return response.text.encode('utf8')
+        except requests.exceptions.RequestException as e:
+            print(f"Erro de rede: {e}\n\nSeguindo programa. . .")
+            return None
