@@ -15,7 +15,7 @@ class DisciplineDatabase(DisciplineRepository):
             pass
 
     def get_disciplines(self) -> List[tuple]:
-        query = 'SELECT * FROM discipline'
+        query = 'SELECT "idDiscipline", "Name", "Id_Cripto" FROM discipline'
 
         try:
             with Connection() as db:

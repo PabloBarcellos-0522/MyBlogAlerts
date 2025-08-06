@@ -91,7 +91,8 @@ class SavePost:
         for stu in self.saved_students:
             self.page.login(stu.Registration, stu.Password)
             disc = self.scrap_disciplines.get_disciplines()
-            self.scr_student_disciplines.update({stu.Id_Student: disc})
+            if disc:
+                self.scr_student_disciplines.update({stu.Id_Student: disc})
             self.page.logout()
 
         self.validate_scrap_discipline()

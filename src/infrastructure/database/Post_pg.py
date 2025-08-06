@@ -23,7 +23,7 @@ class PostDatabase(PostRepository):
             pass
 
     def get_posts(self) -> List[tuple]:
-        query = 'SELECT * FROM post'
+        query = 'SELECT "idPost", "Post_Date", "Post_Url", "Discipline_id", "Text_Content" FROM post'
 
         try:
             with Connection() as db:

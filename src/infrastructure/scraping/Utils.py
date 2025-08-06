@@ -47,7 +47,9 @@ class Utils:
                     posts.append(url_id)
                 except IndexError:
                     print('\nDisciplina sem link encontrada!\n')
-        return posts[0]
+
+        if posts:
+            return posts[0]
 
     @staticmethod
     def catch_posts(body: BeautifulSoup, discipline: Discipline):

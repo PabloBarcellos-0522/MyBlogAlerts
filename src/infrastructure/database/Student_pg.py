@@ -15,7 +15,7 @@ class StudentDatabase(StudentRepository):
             pass
 
     def get_students(self) -> List[tuple]:
-        query = 'SELECT * FROM student'
+        query = 'SELECT "idStudent", "Phone_Number", "Password", "Name", "Registration" FROM student;'
 
         try:
             with Connection() as db:
