@@ -25,6 +25,7 @@ class PostDatabase(PostRepository):
     def get_posts(self) -> List[tuple]:
         query = 'SELECT "idPost", "Post_Date", "Post_Url", "Discipline_id", "Text_Content" FROM post'
 
+        resp = []
         try:
             with Connection() as db:
                 db.run_query(query)

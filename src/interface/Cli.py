@@ -1,6 +1,7 @@
 from src.application.use_cases.Save_Post import SavePost
 from src.application.use_cases.Save_Student import SaveStudent
 from src.domain.models.Student import Student
+from datetime import datetime
 
 if __name__ == "__main__":
     from time import sleep
@@ -16,17 +17,18 @@ if __name__ == "__main__":
         stick = 10
 
         while running:
-            use_case.search_scraping_disciplines()
-            sleep(3)
-            use_case.search_scraping_posts()
-            sleep(3)
+            if not (23 <= datetime.now().hour or datetime.now().hour < 5):
+                use_case.search_scraping_disciplines()
+                sleep(3)
+                use_case.search_scraping_posts()
+                sleep(3)
 
-            stick += 1
-            if stick >= 60:
-                stick = 0
-                use_case.update_all_memory()
+                stick += 1
+                if stick >= 60:
+                    stick = 0
+                    use_case.update_all_memory()
 
-            sleep(60)
+                sleep(60)
 
     threading.Thread(target=crawler_faculty, daemon=True).start()
 

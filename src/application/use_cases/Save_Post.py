@@ -118,11 +118,11 @@ class SavePost:
         for student_id in self.scr_student_disciplines.keys():
             for discipline in self.scr_student_disciplines[student_id]:
                 for s_discipline in self.saved_disciplines:
-                    if (discipline.Name == s_discipline.Name) and (discipline.Id_Cipto == s_discipline.Id_Cipto):
+                    if (discipline.Name == s_discipline.Name) and (discipline.Id_Cipto == s_discipline.Id_Cipto) and discipline.Id_Cipto is not None:
                         existing.append(discipline)
                         stu_disc = StudentDiscipline(student_id, s_discipline.idDiscipline)
                         for i in self.saved_students_disciplines:
-                            if (i.Id_Student == stu_disc.Id_Student) and (i.Id_Discipline == stu_disc.Id_Discipline) and stu_disc.Id_Discipline is not None:
+                            if (i.Id_Student == stu_disc.Id_Student) and (i.Id_Discipline == stu_disc.Id_Discipline):
                                 break
                         else:
                             self.students_disciplines.save(stu_disc)
@@ -132,7 +132,8 @@ class SavePost:
                 self.scr_student_disciplines[key].remove(disc)
         for key in self.scr_student_disciplines.keys():
             for discipline in self.scr_student_disciplines[key]:
-                self.disciplines.save(discipline)
+                if discipline.Id_Cipto is not None:
+                    self.disciplines.save(discipline)
 
     def validate_scrap_post(self):
         print('validate_scrap_post')
