@@ -129,7 +129,8 @@ class SavePost:
                             self.saved_students_disciplines.append(stu_disc)
         for key in self.scr_student_disciplines.keys():
             for disc in existing:
-                self.scr_student_disciplines[key].remove(disc)
+                if disc in self.scr_student_disciplines[key]:
+                    self.scr_student_disciplines[key].remove(disc)
         for key in self.scr_student_disciplines.keys():
             for discipline in self.scr_student_disciplines[key]:
                 if discipline.Id_Cipto is not None:

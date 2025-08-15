@@ -52,7 +52,8 @@ if __name__ == "__main__":
                     if type(stu) == Student:
                         sleep(3)
                         use_case.update_students()
-                    else: print('error: \n' + str(stu))
+                    else:
+                        print('error: \n' + str(stu))
                 else:
                     print('Canceled Operation!')
 
@@ -73,8 +74,9 @@ if __name__ == "__main__":
             elif option == '0':
                 running = False
                 print('Finishing Program...')
-                sleep(150)
-            else: print('Invalid Operation!')
+                sleep(100)
+            else:
+                print('Invalid Operation!')
 
     except (TypeError, ValueError) as e:
         print(f"Erro inesperado: {e}")
