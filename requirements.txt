@@ -1,0 +1,6 @@
+# Use psycopg2==2.9.10 only if option psycopg2-binary does not work
+psycopg2-binary~=2.9.10
+python-dotenv~=1.1.1
+requests~=2.32.4
+beautifulsoup4~=4.13.4
+cryptography~=45.0.6
