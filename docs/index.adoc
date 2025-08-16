@@ -113,10 +113,10 @@ CREATE SCHEMA MyBlogAlerts;
 
 CREATE TABLE MyBlogAlerts.Student (
     idStudent INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    Phone_Number VARCHAR(15),
-    Password VARCHAR(25),
-    Name VARCHAR(50),
-    Registration VARCHAR(25)
+    Phone_Number VARCHAR(255),
+    Password VARCHAR(255),
+    Name VARCHAR(100),
+    Registration VARCHAR(255)
 );
 
 CREATE TABLE MyBlogAlerts.discipline (
@@ -167,6 +167,7 @@ CREATE TABLE MyBlogAlerts.student_discipline (
 * [x] Cadastro manual de aluno
 * [x] Loop automático e modo CLI
 * [x] Integração com WhatsApp API
+* [x] Garantir criptografia entre sistema e banco de dados
 
 == Gathering Results
 
