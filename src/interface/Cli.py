@@ -14,21 +14,21 @@ if __name__ == "__main__":
     def crawler_faculty():
         use_case.update_all_memory()
         sleep(10)
-        stick = 10
+        stick = 0
 
         while running:
             if not (23 <= datetime.now().hour or datetime.now().hour < 5):
+                print("\t=== Time: " + str(datetime.now()) + " ===")
                 use_case.search_scraping_disciplines()
-                sleep(3)
                 use_case.search_scraping_posts()
-                sleep(3)
+                print("Finished stick " + str(stick) + "\n")
 
                 stick += 1
                 if stick >= 60:
                     stick = 0
                     use_case.update_all_memory()
 
-                sleep(60)
+                sleep(90)
 
     threading.Thread(target=crawler_faculty, daemon=True).start()
 

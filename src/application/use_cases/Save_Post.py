@@ -34,6 +34,7 @@ class SavePost:
         self.update_disciplines()
         self.update_students()
         self.update_students_disciplines()
+        print("\n")
 
     def update_posts(self):
         print('update_posts')
@@ -96,8 +97,7 @@ class SavePost:
             self.page.logout()
 
         self.validate_scrap_discipline()
-        time.sleep(3)
-        self.update_disciplines()
+        time.sleep(1)
 
     def search_scraping_posts(self):
         print('search_scraping_posts')
@@ -109,8 +109,7 @@ class SavePost:
             self.page.logout()
 
         self.validate_scrap_post()
-        time.sleep(3)
-        self.update_posts()
+        time.sleep(1)
 
     def validate_scrap_discipline(self):
         print('validate_scrap_discipline')
@@ -134,7 +133,12 @@ class SavePost:
         for key in self.scr_student_disciplines.keys():
             for discipline in self.scr_student_disciplines[key]:
                 if discipline.Id_Cipto is not None:
+                    print("Save new Discipline..." + discipline.Name)
                     self.disciplines.save(discipline)
+        if self.scr_student_disciplines.keys():
+            time.sleep(3)
+            print("Update new Disciplines...")
+            self.update_disciplines()
 
     def validate_scrap_post(self):
         print('validate_scrap_post')
@@ -163,3 +167,7 @@ class SavePost:
                 print(self.send.group_msg(disc_name + ":\n" + post.Content + '\nUrl: ' + post.Post_Url))
                 time.sleep(0.5)
                 self.posts.save(post)
+        if self.scr_discipline_posts.keys():
+            time.sleep(3)
+            print("Update new Posts...")
+            self.update_posts()
