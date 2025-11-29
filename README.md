@@ -23,7 +23,7 @@ Este projeto funciona em Blogs acadêmicos que utilizam o formado de tecnologia 
 - PostgreSQL 13+
 - Conta e chave da Green API (WhatsApp) ou api compatível
 - Id de um grupo WhatsApp que receberá menságens (é possível gerar/viualizar seu ID pelo site da Green API)
-- Variáveis configuradas em [`.env`](.env)
+- Variáveis configuradas em [`.env`](.env.template)
 
 ---
 
