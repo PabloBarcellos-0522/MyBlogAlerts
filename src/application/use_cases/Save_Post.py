@@ -1,3 +1,4 @@
+import threading
 import time
 from src.infrastructure.database.Post_pg import PostDatabase, Post
 from src.infrastructure.database.Discipline_pg import DisciplineDatabase, Discipline
@@ -178,7 +179,9 @@ class SavePost:
                 for disc in self.saved_disciplines:
                     if disc.idDiscipline == key:
                         disc_name = disc.Name
-                print(self.send.group_msg(disc_name + ":\n" + post.Content + '\nUrl: ' + post.Post_Url))
+
+                message_content = f"{disc_name}:\n{post.Content}\nUrl: {post.Post_Url}"
+                threading.Thread(target=self.send.group_msg, args=message_content).start()
                 time.sleep(0.5)
                 self.posts.save(post)
         if self.scr_discipline_posts.keys():

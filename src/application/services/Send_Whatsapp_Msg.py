@@ -1,4 +1,6 @@
 import os
+import time
+
 from dotenv import load_dotenv
 import requests
 from src.infrastructure.WhatsappAPI.Green_Connect import WhatsappConnect
@@ -12,35 +14,37 @@ class SendMensage(WhatsappConnect):
         self.group_id = os.getenv('GROUP_ID')
 
     def student_msg(self, phone: str, msg: str):
-        try:
-            payload = {
-                "chatId": phone + "@c.us",
-                "message": msg,
-                "linkPreview": False
-            }
-            headers = {
-                'Content-Type': 'application/json'
-            }
+        while True:
+            try:
+                payload = {
+                    "chatId": phone + "@c.us",
+                    "message": msg,
+                    "linkPreview": False
+                }
+                headers = {
+                    'Content-Type': 'application/json'
+                }
 
-            response = self.connection.post(self.url, json=payload, headers=headers)
-            return response.text.encode('utf8')
-        except requests.exceptions.RequestException as e:
-            print(f"Erro de rede: {e}\n\nSeguindo programa. . .")
-            return None
+                response = self.connection.post(self.url, json=payload, headers=headers)
+                return response.text.encode('utf8')
+            except requests.exceptions.RequestException as e:
+                print(f"Erro de rede ao tentar enviar nova mensagem: {e}\n\nTentando novamente em 30 segundos...")
+                time.sleep(30)
 
     def group_msg(self, msg: str):
-        try:
-            payload = {
-                "chatId": str(self.group_id) + "@g.us",
-                "message": msg,
-                "linkPreview": False
-            }
-            headers = {
-                'Content-Type': 'application/json'
-            }
+        while True:
+            try:
+                payload = {
+                    "chatId": str(self.group_id) + "@g.us",
+                    "message": msg,
+                    "linkPreview": False
+                }
+                headers = {
+                    'Content-Type': 'application/json'
+                }
 
-            response = self.connection.post(self.url, json=payload, headers=headers)
-            return response.text.encode('utf8')
-        except requests.exceptions.RequestException as e:
-            print(f"Erro de rede: {e}\n\nSeguindo programa. . .")
-            return None
+                response = self.connection.post(self.url, json=payload, headers=headers)
+                return response.text.encode('utf8')
+            except requests.exceptions.RequestException as e:
+                print(f"Erro de rede ao tentar enviar nova mensagem: {e}\n\nTentando novamente em 30 segundos...")
+                time.sleep(30)
