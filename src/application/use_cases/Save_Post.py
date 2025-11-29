@@ -181,7 +181,7 @@ class SavePost:
                         disc_name = disc.Name
 
                 message_content = f"{disc_name}:\n{post.Content}\nUrl: {post.Post_Url}"
-                threading.Thread(target=self.send.group_msg, args=message_content).start()
+                threading.Thread(target=self.send.group_msg, args=(message_content,)).start()
                 time.sleep(0.5)
                 self.posts.save(post)
         if self.scr_discipline_posts.keys():

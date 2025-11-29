@@ -13,20 +13,22 @@ class SaveStudent:
     def new_student(self, phone: str, registration: str, password: str) -> Student | str:
         stu = Student(phone, registration, password)
         html = self.page.login(stu.Registration, stu.Password)
-        error = html.find('div', class_='alert-danger')
-        self.page.logout()
 
-        if error is not None:
-            print(error.text)
-            return error
-        print('Logado com sucesso!')
+        if html is not None:
+            error = html.find('div', class_='alert-danger')
+            self.page.logout()
 
-        for s in self.stu_data.get_students():
-            if s[4] == stu.Registration:
-                print('Usuário já cadastrado')
-                return 'Usuário já cadastrado'
+            if error is not None:
+                print(error.text)
+                return error
+            print('Logado com sucesso!')
 
-        self.stu_data.save(stu)
+            for s in self.stu_data.get_students():
+                if s[4] == stu.Registration:
+                    print('Usuário já cadastrado')
+                    return 'Usuário já cadastrado'
+
+            self.stu_data.save(stu)
         return stu
 
     def del_student(self, regisration: str):
