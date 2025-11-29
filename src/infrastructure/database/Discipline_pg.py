@@ -1,6 +1,7 @@
 from typing import List
 from src.domain.repositories.Discipline_Repository import DisciplineRepository, Discipline
 from src.infrastructure.database.Connection import Connection
+import psycopg2
 
 
 class DisciplineDatabase(DisciplineRepository):
@@ -17,13 +18,14 @@ class DisciplineDatabase(DisciplineRepository):
     def get_disciplines(self) -> List[tuple]:
         query = 'SELECT "idDiscipline", "Name", "Id_Cripto" FROM discipline'
 
-        resp = []
+        resp = None
         try:
             with Connection() as db:
                 db.run_query(query)
                 resp = db.catch_all()
-        finally:
-            return resp
+        except psycopg2.OperationalError as e:
+            print("\tFalha ao obter Disciplinas devido a erro de DB. Retornando None.\n")
+        return resp
 
     def chage_name(self, discipline: Discipline, name: str) -> None:
         query = f'''

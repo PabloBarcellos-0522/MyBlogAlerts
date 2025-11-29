@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet
 import base64
+import psycopg2
 
 
 class StudentDatabase(StudentRepository):
@@ -39,7 +40,6 @@ class StudentDatabase(StudentRepository):
             with Connection() as db:
                 db.run_query(query)
                 resp = db.catch_all()
-        finally:
             for i in range(len(resp)):
                 phone = base64.urlsafe_b64decode(resp[i][1].encode("utf-8"))
                 password = base64.urlsafe_b64decode(resp[i][2].encode("utf-8"))
@@ -50,6 +50,9 @@ class StudentDatabase(StudentRepository):
                 registration = self.SECRET_KEY.decrypt(registration).decode("utf-8")
 
                 resp[i] = (resp[i][0], phone, password, resp[i][3], registration)
+        except psycopg2.OperationalError as e:
+            print("\tFalha ao obter Estudantes devido a erro de DB. Retornando lista vazia.\n")
+        finally:
             return resp
 
     def chage_number(self, student: Student, new_phone: str) -> None:

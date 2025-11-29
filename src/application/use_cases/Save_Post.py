@@ -39,27 +39,33 @@ class SavePost:
     def update_posts(self):
         print('update_posts')
 
-        list_posts = []
-        for post in self.posts.get_posts():
-            id_p = post[0]
-            date = post[1]
-            url = post[2]
-            discipline_id = post[3]
-            content = post[4]
+        fetched_posts = self.posts.get_posts()
+        list_posts = None
+        if fetched_posts is not None:
+            list_posts = []
+            for post in fetched_posts:
+                id_p = post[0]
+                date = post[1]
+                url = post[2]
+                discipline_id = post[3]
+                content = post[4]
 
-            list_posts.append(Post(date, url, discipline_id, content, id_p))
+                list_posts.append(Post(date, url, discipline_id, content, id_p))
         self.saved_posts = list_posts
 
     def update_disciplines(self):
         print('update_disciplines')
 
-        list_disc = []
-        for disc in self.disciplines.get_disciplines():
-            id_d = disc[0]
-            name = disc[1]
-            id_crip = disc[2]
+        fetch_disciplines = self.posts.get_posts()
+        list_disc = None
+        if fetch_disciplines is not None:
+            list_disc = []
+            for disc in fetch_disciplines:
+                id_d = disc[0]
+                name = disc[1]
+                id_crip = disc[2]
 
-            list_disc.append(Discipline(name, id_crip, id_d))
+                list_disc.append(Discipline(name, id_crip, id_d))
         self.saved_disciplines = list_disc
 
     def update_students(self):
@@ -79,12 +85,15 @@ class SavePost:
     def update_students_disciplines(self):
         print('update_students_disciplines')
 
-        list_disc_posts = []
-        for stu in self.students_disciplines.get_students_disciplines():
-            id_s = stu[0]
-            id_d = stu[1]
+        fetch_students_disciplines = self.students_disciplines.get_students_disciplines()
+        list_disc_posts = None
+        if fetch_students_disciplines is not None:
+            list_disc_posts = []
+            for stu in fetch_students_disciplines:
+                id_s = stu[0]
+                id_d = stu[1]
 
-            list_disc_posts.append(StudentDiscipline(id_s, id_d))
+                list_disc_posts.append(StudentDiscipline(id_s, id_d))
         self.saved_students_disciplines = list_disc_posts
 
     def search_scraping_disciplines(self):
@@ -96,7 +105,8 @@ class SavePost:
                 self.scr_student_disciplines.update({stu.Id_Student: disc})
             self.page.logout()
 
-        self.validate_scrap_discipline()
+        if self.saved_disciplines is not None:
+            self.validate_scrap_discipline()
         time.sleep(1)
 
     def search_scraping_posts(self):
@@ -108,11 +118,13 @@ class SavePost:
                 self.scr_discipline_posts.update({disc.idDiscipline: posts})
             self.page.logout()
 
-        self.validate_scrap_post()
+        if self.saved_posts is not None:
+            self.validate_scrap_post()
         time.sleep(1)
 
     def validate_scrap_discipline(self):
         print('validate_scrap_discipline')
+
         existing = []
         for student_id in self.scr_student_disciplines.keys():
             for discipline in self.scr_student_disciplines[student_id]:
@@ -120,12 +132,13 @@ class SavePost:
                     if (discipline.Name == s_discipline.Name) and (discipline.Id_Cipto == s_discipline.Id_Cipto) and discipline.Id_Cipto is not None:
                         existing.append(discipline)
                         stu_disc = StudentDiscipline(student_id, s_discipline.idDiscipline)
-                        for i in self.saved_students_disciplines:
-                            if (i.Id_Student == stu_disc.Id_Student) and (i.Id_Discipline == stu_disc.Id_Discipline):
-                                break
-                        else:
-                            self.students_disciplines.save(stu_disc)
-                            self.saved_students_disciplines.append(stu_disc)
+                        if self.saved_students_disciplines is not None:
+                            for i in self.saved_students_disciplines:
+                                if (i.Id_Student == stu_disc.Id_Student) and (i.Id_Discipline == stu_disc.Id_Discipline):
+                                    break
+                            else:
+                                self.students_disciplines.save(stu_disc)
+                                self.saved_students_disciplines.append(stu_disc)
         for key in self.scr_student_disciplines.keys():
             for disc in existing:
                 if disc in self.scr_student_disciplines[key]:
@@ -142,6 +155,7 @@ class SavePost:
 
     def validate_scrap_post(self):
         print('validate_scrap_post')
+
         existing = []
         for disc_id in self.scr_discipline_posts.keys():
             for post in self.scr_discipline_posts[disc_id]:

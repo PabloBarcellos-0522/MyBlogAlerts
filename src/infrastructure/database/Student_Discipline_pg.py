@@ -1,6 +1,7 @@
 from typing import List
 from src.domain.repositories.Student_Discipline_Repository import StudentDisciplineRepository, StudentDiscipline
 from src.infrastructure.database.Connection import Connection
+import psycopg2
 
 
 class StudentDisciplineDatabase(StudentDisciplineRepository):
@@ -17,21 +18,26 @@ class StudentDisciplineDatabase(StudentDisciplineRepository):
     def get_students_disciplines(self) -> List[tuple]:
         query = 'SELECT * FROM student_discipline'
 
-        resp = []
+        resp = None
         try:
             with Connection() as db:
                 db.run_query(query)
                 resp = db.catch_all()
+        except psycopg2.OperationalError as e:
+            print("\tFalha ao obter Student_Disciplines devido a erro de DB. Retornando None.\n")
         finally:
             return resp
 
     def get_this_student(self, stu_id: int) -> List[tuple]:
         query = 'SELECT * FROM student_discipline where "Student_idStudent" = ' + str(stu_id)
 
+        resp = None
         try:
             with Connection() as db:
                 db.run_query(query)
                 resp = db.catch_all()
+        except psycopg2.OperationalError as e:
+            print("\tFalha ao obter Student_Disciplines devido a erro de DB. Retornando None.\n")
         finally:
             return resp
 

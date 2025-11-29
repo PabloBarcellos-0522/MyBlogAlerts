@@ -3,6 +3,7 @@ from typing import List
 from src.domain.models.Discipline import Discipline
 from src.domain.repositories.Post_Repository import PostRepository, Post
 from src.infrastructure.database.Connection import Connection
+import psycopg2
 
 
 class PostDatabase(PostRepository):
@@ -25,13 +26,14 @@ class PostDatabase(PostRepository):
     def get_posts(self) -> List[tuple]:
         query = 'SELECT "idPost", "Post_Date", "Post_Url", "Discipline_id", "Text_Content" FROM post'
 
-        resp = []
+        resp = None
         try:
             with Connection() as db:
                 db.run_query(query)
                 resp = db.catch_all()
-        finally:
-            return resp
+        except psycopg2.OperationalError as e:
+            print("\tFalha ao obter posts devido a erro de DB. Retornando None.\n")
+        return resp
 
     def change_post_date(self, post: Post, date: datetime) -> None:
         query = f'''
