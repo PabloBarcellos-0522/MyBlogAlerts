@@ -1,4 +1,3 @@
-import time
 from typing import List
 from src.domain.models.Discipline import Discipline
 from src.infrastructure.scraping.Scraping_Login import ScrapingLogin

@@ -84,8 +84,7 @@ class SaveStudent:
 
             # Step 3: Delete the student
             # Requires delete method to accept an ID or a find_by_id and then delete.
-            # For now, we assume the existing delete method which takes an object works.
-            self.student_repo.delete(student_to_delete)
+            self.student_repo.delete(student_id)
             print(f"Deleted student with registration: {registration}")
             return True
         except Exception as e:

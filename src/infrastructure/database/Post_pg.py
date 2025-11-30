@@ -1,9 +1,8 @@
-from datetime import datetime, date
+from datetime import date
 from typing import Optional, List
 
 import psycopg2
 
-from src.domain.models.Discipline import Discipline
 from src.domain.models.Post import Post
 from src.domain.repositories.Post_Repository import PostRepository
 from src.infrastructure.database.Connection import Connection

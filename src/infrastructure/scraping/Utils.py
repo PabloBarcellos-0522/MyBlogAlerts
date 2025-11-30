@@ -5,7 +5,6 @@ from src.domain.models.Post import Post
 from src.domain.models.Discipline import Discipline
 from dotenv import load_dotenv
 import os
-import locale
 
 
 class Utils:

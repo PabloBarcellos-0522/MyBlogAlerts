@@ -23,7 +23,7 @@ class InMemoryStore:
 
     def get_discipline_by_id(self, discipline_id: int) -> Optional[Discipline]:
         for discipline in self.disciplines:
-            if discipline.idDiscipline == discipline_id:
+            if discipline.id_discipline == discipline_id:
                 return discipline
         return None
 
