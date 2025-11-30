@@ -16,8 +16,8 @@ class CrawlerPosts:
             page = 0
             post_list = []
             while True:
-                resp = self.page.session.get(self.page.url_posts.format(discipline.Id_Cipto, page), timeout=3)
-                if (not resp.text.strip()) or page >= 3:
+                resp = self.page.session.get(self.page.url_posts.format(discipline.id_cripto, page), timeout=3)
+                if not resp.text.strip():
                     break
 
                 html = BeautifulSoup(resp.content, 'html.parser')

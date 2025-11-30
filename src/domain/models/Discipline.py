@@ -4,6 +4,6 @@ from typing import Optional
 
 @dataclass
 class Discipline:
-    Name: str
-    Id_Cipto: str
-    idDiscipline: Optional[int] = None
+    name: str
+    id_cripto: str
+    id_discipline: Optional[int] = None

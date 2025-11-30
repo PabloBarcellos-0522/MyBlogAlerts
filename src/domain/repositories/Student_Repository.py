@@ -1,26 +1,47 @@
-from typing import List
-from src.domain.models.Student import Student
 from abc import ABC, abstractmethod
+from typing import List, Optional
+from src.domain.models.Student import Student
 
 
 class StudentRepository(ABC):
     @abstractmethod
-    def save(self, student: Student) -> None: pass
+    def get_all(self) -> Optional[List[Student]]:
+        """
+        Returns all students from the database.
+        :return: A list of Student objects or None if no students are found.
+        """
+        raise NotImplementedError
 
     @abstractmethod
-    def get_students(self) -> List[tuple]: pass
+    def get_by_id(self, student_id: int) -> Optional[Student]:
+        """
+        Returns a student by its ID.
+        :param student_id: The ID of the student.
+        :return: A Student object or None if not found.
+        """
+        raise NotImplementedError
 
     @abstractmethod
-    def chage_number(self, student: Student, new_phone: str) -> None: pass
+    def find_by_registration(self, registration: str) -> Optional[Student]:
+        """
+        Finds a student by their registration number.
+        :param registration: The registration number to search for.
+        :return: A Student object or None if not found.
+        """
+        raise NotImplementedError
 
     @abstractmethod
-    def change_password(self, student: Student, password: str) -> None: pass
+    def save(self, student: Student) -> None:
+        """
+        Saves a student to the database.
+        :param student: The student object to save.
+        """
+        raise NotImplementedError
 
     @abstractmethod
-    def change_registration(self, student: Student, registration: str) -> None: pass
-
-    @abstractmethod
-    def change_name(self, student: Student, name: str) -> None: pass
-
-    @abstractmethod
-    def delete(self, student: Student) -> None: pass
+    def delete(self, student_id: int) -> None:
+        """
+        Deletes a student from the database by their ID.
+        :param student_id: The ID of the student to delete.
+        """
+        raise NotImplementedError

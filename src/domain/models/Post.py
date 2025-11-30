@@ -5,8 +5,8 @@ from typing import Optional
 
 @dataclass
 class Post:
-    Post_date: datetime.date
-    Post_Url: str
-    Discipline_id: int
-    Content: str
-    idPost: Optional[int] = None
+    post_date: datetime.date
+    post_url: str
+    discipline_id: int
+    content: str
+    id_post: Optional[int] = None

@@ -13,15 +13,15 @@ class CrawlerDisciplines:
     def get_disciplines(self) -> List[Discipline]:
         try:
             disciplines = []
-            discipline_id = Utils.get_frist_id(self.page.html)
+            discipline_id = Utils.get_first_id(self.page.html)
             if discipline_id:
+                # This first request seems to be necessary to initialize the server-side session
                 self.page.session.get(self.page.url_posts.format(discipline_id, 0))
                 year, semester = Utils.catch_year_semester()
-                self.page.session.get(self.page.url_disciplines.format(year, semester))
-                time.sleep(3)
-
-                disciplines_data = self.page.session.get(self.page.url_disciplines.format(year, semester), timeout=3)
-                disciplines = Utils.contructor_desciplines(disciplines_data)
+                
+                # Directly call for the disciplines data once.
+                disciplines_data = self.page.session.get(self.page.url_disciplines.format(year, semester), timeout=5)
+                disciplines = Utils.constructor_disciplines(disciplines_data)
             return disciplines
 
         except requests.exceptions.RequestException as e:
