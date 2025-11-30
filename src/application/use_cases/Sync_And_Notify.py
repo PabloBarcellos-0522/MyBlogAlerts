@@ -1,3 +1,4 @@
+import threading
 import time
 from typing import List
 
@@ -139,5 +140,5 @@ class SyncAndNotifyUseCase:
 
                     # Send notification
                     message = f"Novo aviso em *{discipline.name}*:\n\n{post.content}\n\n*Url:* {post.post_url}"
-                    self.notification_service.send_notification(message)
-                    time.sleep(1)  # Avoid flooding
+                    threading.Thread(target=self.notification_service.send_notification, args=(message,)).start()
+                    time.sleep(3)

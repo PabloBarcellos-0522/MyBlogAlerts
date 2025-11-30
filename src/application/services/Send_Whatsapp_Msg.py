@@ -6,7 +6,7 @@ from src.domain.services.Notification_Service import NotificationService
 
 
 class WhatsappNotificationService(NotificationService):
-    def __init__(self, max_retries=3, retry_delay=30):
+    def __init__(self, max_retries=15, retry_delay=60):
         load_dotenv()
         self.connection = requests.session()
         self.url = os.getenv('API_URL')
