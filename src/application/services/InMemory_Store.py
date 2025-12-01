@@ -50,19 +50,18 @@ class InMemoryStore:
         """
         print("Performing full data synchronization with the database...")
         try:
-            self.students = student_repo.get_all() or []
-            print(f"  {len(self.students)} students loaded.")
+            self.students = student_repo.get_all()
+            print(f"  {len(self.students or [])} students loaded.")
 
-            self.disciplines = discipline_repo.get_all() or []
-            print(f"  {len(self.disciplines)} disciplines loaded.")
+            self.disciplines = discipline_repo.get_all()
+            print(f"  {len(self.disciplines or [])} disciplines loaded.")
 
-            self.posts = post_repo.get_all() or []
-            print(f"  {len(self.posts)} posts loaded.")
+            self.posts = post_repo.get_all()
+            print(f"  {len(self.posts or [])} posts loaded.")
             
-            self.student_disciplines = student_discipline_repo.get_all() or []
-            print(f"  {len(self.student_disciplines)} associations loaded.")
+            self.student_disciplines = student_discipline_repo.get_all()
+            print(f"  {len(self.student_disciplines or [])} associations loaded.")
 
             print("Full synchronization complete.")
         except Exception as e:
             print(f"An error occurred during full synchronization: {e}")
-

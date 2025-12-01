@@ -1,19 +1,14 @@
 from datetime import datetime
 import threading
 from time import sleep
-from typing import Tuple
+from typing import Tuple, Callable
 
 # --- Dependency Imports ---
-# Application Layer
 from src.application.services.InMemory_Store import InMemoryStore
 from src.application.use_cases.Sync_And_Notify import SyncAndNotifyUseCase
 from src.application.services.Send_Whatsapp_Msg import WhatsappNotificationService
 from src.application.use_cases.Save_Student import SaveStudent
-
-# Domain Layer
 from src.domain.models.Student import Student
-
-# Infrastructure Layer (Concrete Implementations)
 from src.infrastructure.database.Student_pg import StudentPgRepository
 from src.infrastructure.database.Discipline_pg import DisciplinePgRepository
 from src.infrastructure.database.Student_Discipline_pg import StudentDisciplinePgRepository
@@ -21,58 +16,60 @@ from src.infrastructure.database.Post_pg import PostPgRepository
 from src.infrastructure.scraping.Scraping_Adapter import ScrapingAdapter
 
 
-def setup_dependencies() -> Tuple[SyncAndNotifyUseCase, InMemoryStore, SaveStudent, dict]:
-    """Instantiates and wires up all the dependencies."""
+def setup_dependencies() -> Tuple[SyncAndNotifyUseCase, SaveStudent, Callable[[], None]]:
+    """Instantiates and wires up all the dependencies, including the recovery callback."""
     print("Setting up dependencies...")
-    # Instantiate repositories
+    # 1. Instantiate repositories and the store
     repos = {
         'student': StudentPgRepository(),
         'discipline': DisciplinePgRepository(),
         'student_discipline': StudentDisciplinePgRepository(),
         'post': PostPgRepository()
     }
-    # Instantiate services
-    scraping_service = ScrapingAdapter()
-    notification_service = WhatsappNotificationService()
-    # Instantiate the in-memory store
     store = InMemoryStore()
 
-    # Instantiate the main use case
+    # 2. Define the sync function which needs access to repos and store
+    def perform_full_sync_wrapper():
+        """A wrapper that captures store and repos to perform a full sync."""
+        store.full_sync(
+            student_repo=repos['student'],
+            discipline_repo=repos['discipline'],
+            post_repo=repos['post'],
+            student_discipline_repo=repos['student_discipline']
+        )
+
+    # 3. Instantiate services
+    scraping_service = ScrapingAdapter()
+    notification_service = WhatsappNotificationService()
+
+    # 4. Instantiate the main use case, injecting the sync callback
     sync_use_case = SyncAndNotifyUseCase(
         store=store,
         discipline_repo=repos['discipline'],
         student_discipline_repo=repos['student_discipline'],
         post_repo=repos['post'],
         scraping_service=scraping_service,
-        notification_service=notification_service
+        notification_service=notification_service,
+        sync_callback=perform_full_sync_wrapper  # Dependency Injection
     )
-    
-    # Instantiate the student management use case
+
+    # 5. Instantiate the student management use case
     student_use_case = SaveStudent(
         student_repo=repos['student'],
         student_discipline_repo=repos['student_discipline'],
         scraping_service=scraping_service
     )
     
-    return sync_use_case, store, student_use_case, repos
+    # 6. Return all necessary components for the main script
+    return sync_use_case, student_use_case, perform_full_sync_wrapper
 
 
 if __name__ == "__main__":
     # --- Dependency Injection ---
-    sync_use_case, in_memory_store, register_student_use_case, repositories = setup_dependencies()
+    sync_use_case, register_student_use_case, perform_full_sync = setup_dependencies()
     
     global running
     running = True
-
-
-    def perform_full_sync():
-        in_memory_store.full_sync(
-            student_repo=repositories['student'],
-            discipline_repo=repositories['discipline'],
-            post_repo=repositories['post'],
-            student_discipline_repo=repositories['student_discipline']
-        )
-
 
     def crawler_faculty():
         global running
@@ -82,29 +79,44 @@ if __name__ == "__main__":
         cycles_for_resync = (sync_interval_minutes * 60) / sleep_time_seconds
 
         # Initial full sync before starting the loop
-        perform_full_sync()
+        try:
+            print("--- Performing initial data synchronization... ---")
+            perform_full_sync()
+            print("--- Initial sync successful. ---")
+        except Exception as e:
+            print(f"!!! Initial full sync failed: {e}. The application might be in a degraded state. !!!")
         
         cycle_count = 1
         while running:
             now = datetime.now()
-            # Resync periodically
-            if cycle_count >= cycles_for_resync:
+            # Resync periodically and reset the recovery state
+            if cycle_count > cycles_for_resync:
                 print(f"\n--- Scheduled Sync Triggered at: {now.strftime('%Y-%m-%d %H:%M:%S')} ---")
-                perform_full_sync()
+                # Reset the recovery state before attempting a full sync
+                sync_use_case.reset_recovery_state()
+                try:
+                    perform_full_sync()
+                except Exception as e:
+                    print(f"!!! Scheduled sync failed: {e}. !!!")
                 cycle_count = 1  # Reset counter
 
             # Run sync logic only outside of "quiet hours" (e.g., 23:00 to 05:00)
             if not (23 <= now.hour or now.hour < 5):
                 print(f"\n--- Cycle {cycle_count}/{int(cycles_for_resync)} started at: {now.strftime('%Y-%m-%d %H:%M:%S')} ---")
-                sync_use_case.execute()
-                print(f"--- Cycle finished. Next check in {sleep_time_seconds} seconds. ---")
+                try:
+                    sync_use_case.execute()
+                    print(f"--- Cycle finished successfully. Next check in {sleep_time_seconds} seconds. ---")
+                except Exception:
+                    # The use case already logs the details of the error and recovery attempt.
+                    # We just log that the cycle failed and continue the loop.
+                    print(f"--- Cycle failed. See logs above for details. Next check in {sleep_time_seconds} seconds. ---")
+                cycle_count += 1
             else:
                 print(f"Quiet hours. Skipping synchronization. Current time: {now.strftime('%H:%M:%S')}")
 
             if not running:
                 break
 
-            cycle_count += 1
             sleep(sleep_time_seconds)
 
 
