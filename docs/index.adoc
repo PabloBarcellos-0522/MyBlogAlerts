@@ -4,47 +4,47 @@
 
 == Background
 
-MyBlogAlerts surgiu da necessidade de monitorar automaticamente os avisos acadêmicos publicados
-em blogs ou páginas da minha faculdade. A proposta é centralizar essas informações, armazená-las
-em um banco de dados, e enviar alertas por WhatsApp assim que novas postagens forem detectadas.
-Isso é especialmente útil para alunos que tentam acompanhar as disciplinas mas nem sempre recebem
-os devidos avisos em tempo hábil por email.
+Myblogalerts arose from the need to automatically monitor published academic warnings
+on blogs or pages of my college. The proposal is to centralize this information, to store it
+In a database, and send alerts by WhatsApp as soon as new posts are detected.
+This is especially useful for students who try to follow the subjects but do not always receive
+The appropriate warnings in time by email.
 
 == Requirements
 
 *Must Have:*
 
-* Monitorar avisos novos automaticamente por web scraping
-* Armazenar avisos em banco PostgreSQL hospedado (chave protegida)
-* Evitar duplicação de postagens
-* Suporte a múltiplos alunos
-* Adicionar/remover alunos manualmente pela interface
-* Enviar mensagens para WhatsApp por API (chave protegida)
+* Monitor new warnings automatically by web scraping
+* Store notices in Banco PostgreSQL hosted (protected key)
+* Avoid duplication of posts
+* Support to multiple students
+* Add/remove students manually through the interface
+* Send messages to WhatsApp by API (protected key)
 
 *Should Have:*
 
-* Interface simples em linha de comando para uso
-* Pool de conexões com PostgreSQL
-* Armazenar senhas e registros com segurança (env)
+* Simple interface in command line for use
+* POOL OF CONNECTIONS WITH POSTGESQL
+* Store passwords and records safely (ENV)
 
 *Could Have:*
 
-* Interface com agendamento automático
-* Logs e tratamento de erros elegantes
+* Interface with automatic scheduling
+* Logs and treatment of elegant errors
 
 
 == Method
 
-O projeto utiliza a arquitetura Clean Architecture com divisão clara entre domínio, aplicação, infraestrutura e interface. A estrutura é composta por:
+The project uses the Clean Architecture architecture with clear division between domain, application, infrastructure and interface. The structure consists of:
 
-* **src/domain/**: Entidades e interfaces de repositório
-* **src/application/**: Casos de uso como `SalvarPostagem`, `SalvarAluno` e serviços para enviar mensagens
-* **src/infrastructure/**: Scrapers, repositórios PostgreSQL e conexão com API
-* **src/interface/**: Ponto de entrada via CLI
+* ** src/domain/**: Repository Entities and Interfaces
+* ** src/application/**: Use cases such as `Sync_And_Notify`,` Save_Student` and services to send messages
+* ** src/infrastructure/**: Scrapers, PostgreSQL repositions and api connection
+* ** src/interface/**: entry point via cli
 
-O scraping é feito com BeautifulSoup, e os dados são armazenados em PostgreSQL
-usando `psycopg2` com `SimpleConnectionPool`. A comunicação com o WhatsApp será via API
-da green_API com chaves de APIs armazenadas via `.env`.
+Scrapping is done with BeautifulSoup, and data is stored in PostgreSQL
+Using `Psychopg2` with` SimpleconnectionPool`. Communication with WhatsApp will be via API
+Green_api with keys of APIs stored via `.env`.
 
 [plantuml, architecture-diagram, png]
 
@@ -55,16 +55,19 @@ class Cli
 }
 
 package Application {
-class Save_Post
+class Sync_And_Notify
 class Save_Student
 class Send_Whatsapp_Msg
+class InMemory_Store
 }
 
 package Domain {
 interface Post_Repository
 interface Student_Repository
 interface Discipline_Repository
-interface Student_discipline_Repository`
+interface Student_discipline_Repository
+interface Notification_Service
+interface Scraping_Service
 class Post
 class Student
 class Discipline
@@ -87,25 +90,10 @@ class Crawler_Login
 class Utils
 }
 
-package Infrastructure\scraping {
-class Green_Connect
-}
-
-CLI --> SavePost, SaveStudent
-SavePost --> All databases, SendMensage, ScrapingLogin, CrawlerPosts, CrawlerDisciplines
-SaveStudent --> StudentDatabase, ScrapingLogin, StudentDisciplineDatabase
-StudentDatabase --> Connection, StudentRepository, Student
-DisciplineDatabase --> Connection, DisciplineRepository, Discipline
-PostDatabase --> Connection, PostRepository, Post, Discipline
-StudentDisciplineDatabase --> Connection, StudentDisciplineRepository, StudentDiscipline
-SendMensage --> WhatsappConnect
-CrawlerFaculdade --> Postagem
-CrawlerPosts --> ScrapingLogin
-CrawlerDisciplines --> ScrapingLogin
 @enduml
 -------
 
-Banco de dados (simplificado):
+Database (simplified):
 
 [source,sql]
 ----
@@ -115,7 +103,7 @@ CREATE TABLE MyBlogAlerts.Student (
     idStudent INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     Phone_Number VARCHAR(255),
     Password VARCHAR(255),
-    Name VARCHAR(100),
+    Name VARCHAR(255),
     Registration VARCHAR(255)
 );
 
@@ -147,35 +135,36 @@ CREATE TABLE MyBlogAlerts.student_discipline (
 
 == Implementation
 
-1. Criar estrutura base no `src/`
-2. Implementar entidades: `Post`, `Student`, `Discipline` e `Student_discipline`
-3. Criar interfaces: `Post_Repository`, `Student_Repository`, `Discipline_Repository` e `Student_discipline_Repository`
-4. Criar scraping, repositórios PostgreSQL e conexão com WhatsApp
-5. Criar casos de uso: salvar postagem, salvar aluno
-6. Criar interface CLI com loop automático e interação manual
-7. Implementar conexão segura com `.env` e pool
-8. Implementar o envio de menságens com `Send_Whatsapp_Msg`
-9. Deploy com comando: `python -m src.interface.Cli`
+1. Create base structure in `src/`
+2. Implement Entities: `Post`,` Student`, `Discipline` and` Student_Discipline`
+3. Create interfaces: `post_Repository`,` Student_Repository`, `discipline_Repository` and` Student_discipine_Repository`
+4. Create scraping, postgresql repositories and connection with WhatsApp
+5. Create use cases: Save post, save student
+6. Create click interface with automatic loop and manual interaction
+7. Implement safe connection with `.env` and pool
+8. Implement the sending of monthly fee with `Send_Whatsapp_msg`
+9. Deploy with command: `python -m src.interface.Cli`
 
 == Milestones
 
-* [x] Estrutura inicial definida
-* [x] Repositórios PostgreSQL funcionais
-* [x] Scraping funcionando
-* [x] Caso de uso SalvarPostagem e CLI
-* [x] Pool de conexão PostgreSQL
-* [x] Cadastro manual de aluno
-* [x] Loop automático e modo CLI
-* [x] Integração com WhatsApp API
-* [x] Garantir criptografia entre sistema e banco de dados
+* [x] defined initial structure
+* [x] Functional PostgreSQL repositories
+* [x] Scraping working
+* [x] use case saving and cli
+* [x] PostgreSQL connection pool
+* [x] Student Manual Registration
+* [x] automatic loop and click mode
+* [x] Integration with WhatsApp API
+* [x] Ensure encryption between system and database
 
 == Gathering Results
 
-Resultados serão validados com:
+Results will be validated with:
 
-* Postagens sendo salvas corretamente sem duplicação
-* Avisos entregues por WhatsApp (quando ativado)
-* Alunos podendo ser adicionados/removidos sem falhas
-* Monitoramento contínuo sem interrupções
+* Posts being saved correctly without duplication
+* Notices delivered by WhatsApp (when activated)
+* Students can be added/removed without fail
+* Continuous monitoring without interruptions
+* PostgreSQL database CU-hr consumption
 
-Logs e métricas básicas poderão ser analisadas futuramente para melhoria contínua.
+Basic logs and metrics can be analyzed in the future for continuous improvement.

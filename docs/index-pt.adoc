@@ -1,0 +1,170 @@
+:sectnums:
+:toc:
+= SPEC-1: MyBlogAlerts
+
+== Background
+
+MyBlogAlerts surgiu da necessidade de monitorar automaticamente os avisos acadêmicos publicados
+em blogs ou páginas da minha faculdade. A proposta é centralizar essas informações, armazená-las
+em um banco de dados, e enviar alertas por WhatsApp assim que novas postagens forem detectadas.
+Isso é especialmente útil para alunos que tentam acompanhar as disciplinas mas nem sempre recebem
+os devidos avisos em tempo hábil por email.
+
+== Requirements
+
+*Must Have:*
+
+* Monitorar avisos novos automaticamente por web scraping
+* Armazenar avisos em banco PostgreSQL hospedado (chave protegida)
+* Evitar duplicação de postagens
+* Suporte a múltiplos alunos
+* Adicionar/remover alunos manualmente pela interface
+* Enviar mensagens para WhatsApp por API (chave protegida)
+
+*Should Have:*
+
+* Interface simples em linha de comando para uso
+* Pool de conexões com PostgreSQL
+* Armazenar senhas e registros com segurança (env)
+
+*Could Have:*
+
+* Interface com agendamento automático
+* Logs e tratamento de erros elegantes
+
+
+== Method
+
+O projeto utiliza a arquitetura Clean Architecture com divisão clara entre domínio, aplicação, infraestrutura e interface. A estrutura é composta por:
+
+* **src/domain/**: Entidades e interfaces de repositório
+* **src/application/**: Casos de uso como `Sync_And_Notify`, `Save_Student` e serviços para enviar mensagens
+* **src/infrastructure/**: Scrapers, repositórios PostgreSQL e conexão com API
+* **src/interface/**: Ponto de entrada via CLI
+
+O scraping é feito com BeautifulSoup, e os dados são armazenados em PostgreSQL
+usando `psycopg2` com `SimpleConnectionPool`. A comunicação com o WhatsApp será via API
+da green_API com chaves de APIs armazenadas via `.env`.
+
+[plantuml, architecture-diagram, png]
+
+-------
+@startuml
+package Interface {
+class Cli
+}
+
+package Application {
+class Sync_And_Notify
+class Save_Student
+class Send_Whatsapp_Msg
+class InMemory_Store
+}
+
+package Domain {
+interface Post_Repository
+interface Student_Repository
+interface Discipline_Repository
+interface Student_discipline_Repository
+interface Notification_Service
+interface Scraping_Service
+class Post
+class Student
+class Discipline
+class Student_Discipline
+}
+
+package Infrastructure\database {
+class Connection
+class Discipline_pg
+class Post_pg
+class Student_pg
+class Student_Discipline_pg
+}
+
+package Infrastructure\scraping {
+class Crawler_Disciplines
+class Crawler_Posts
+class Crawler_Students
+class Crawler_Login
+class Utils
+}
+
+@enduml
+-------
+
+Banco de dados (simplificado):
+
+[source,sql]
+----
+CREATE SCHEMA MyBlogAlerts;
+
+CREATE TABLE MyBlogAlerts.Student (
+    idStudent INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    Phone_Number VARCHAR(255),
+    Password VARCHAR(255),
+    Name VARCHAR(255),
+    Registration VARCHAR(255)
+);
+
+CREATE TABLE MyBlogAlerts.discipline (
+    idDiscipline INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    Name VARCHAR NOT NULL,
+    Id_Cripto VARCHAR NOT NULL
+);
+
+CREATE TABLE MyBlogAlerts.post (
+    idPost SERIAL PRIMARY KEY,
+    Post_Date DATE,
+    Post_Url VARCHAR(100),
+    Discipline_id INTERGER NOT NULL,
+    Text_Content VARCHAR
+
+    CONSTRAINT FK_Discipline FOREIGN KEY (Discipline_id) REFERENCES discipline(idDiscipline)
+);
+
+CREATE TABLE MyBlogAlerts.student_discipline (
+    Student_idStudent INTEGER PRIMARY KEY,
+    Discipline_idDiscipline INTEGER PRIMARY KEY
+
+    CONSTRAINT FK_Student FOREIGN KEY (Student_idStudent) REFERENCES MyBlogAlerts.student (idStudent)
+    CONSTRAINT FK_Discipline FOREIGN KEY (Discipline_idDiscipline) REFERENCES MyBlogAlerts.discipline (idDiscipline)
+);
+----
+
+
+== Implementation
+
+1. Criar estrutura base no `src/`
+2. Implementar entidades: `Post`, `Student`, `Discipline` e `Student_discipline`
+3. Criar interfaces: `Post_Repository`, `Student_Repository`, `Discipline_Repository` e `Student_discipline_Repository`
+4. Criar scraping, repositórios PostgreSQL e conexão com WhatsApp
+5. Criar casos de uso: salvar postagem, salvar aluno
+6. Criar interface CLI com loop automático e interação manual
+7. Implementar conexão segura com `.env` e pool
+8. Implementar o envio de menságens com `Send_Whatsapp_Msg`
+9. Deploy com comando: `python -m src.interface.Cli`
+
+== Milestones
+
+* [x] Estrutura inicial definida
+* [x] Repositórios PostgreSQL funcionais
+* [x] Scraping funcionando
+* [x] Caso de uso SalvarPostagem e CLI
+* [x] Pool de conexão PostgreSQL
+* [x] Cadastro manual de aluno
+* [x] Loop automático e modo CLI
+* [x] Integração com WhatsApp API
+* [x] Garantir criptografia entre sistema e banco de dados
+
+== Gathering Results
+
+Resultados serão validados com:
+
+* Postagens sendo salvas corretamente sem duplicação
+* Avisos entregues por WhatsApp (quando ativado)
+* Alunos podendo ser adicionados/removidos sem falhas
+* Monitoramento contínuo sem interrupções
+* Consumo de CU-hrs do banco de dados PostgreSQL
+
+Logs e métricas básicas poderão ser analisadas futuramente para melhoria contínua.
