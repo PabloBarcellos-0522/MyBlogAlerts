@@ -31,7 +31,7 @@ class StudentPgRepository(StudentRepository):
                     id_s = row[0]
                     phone = self.SECRET_KEY.decrypt(base64.urlsafe_b64decode(row[1].encode("utf-8"))).decode("utf-8")
                     password = self.SECRET_KEY.decrypt(base64.urlsafe_b64decode(row[2].encode("utf-8"))).decode("utf-8")
-                    name = row[3]
+                    name = self.SECRET_KEY.decrypt(base64.urlsafe_b64decode(row[3].encode("utf-8"))).decode("utf-8")
                     registration = self.SECRET_KEY.decrypt(base64.urlsafe_b64decode(row[4].encode("utf-8"))).decode("utf-8")
                     students.append(Student(phone_number=phone, registration=registration, password=password, id_student=id_s, name=name))
                 except Exception:
@@ -78,16 +78,18 @@ class StudentPgRepository(StudentRepository):
         return None
 
     def save(self, student: Student) -> None:
+        name = self.SECRET_KEY.encrypt(student.name.encode('utf-8'))
         password = self.SECRET_KEY.encrypt(student.password.encode('utf-8'))
         registration = self.SECRET_KEY.encrypt(student.registration.encode('utf-8'))
         phone_number = self.SECRET_KEY.encrypt(student.phone_number.encode('utf-8'))
 
+        name = base64.urlsafe_b64encode(name).decode("utf-8")
         password = base64.urlsafe_b64encode(password).decode("utf-8")
         registration = base64.urlsafe_b64encode(registration).decode("utf-8")
         phone_number = base64.urlsafe_b64encode(phone_number).decode("utf-8")
 
         query = 'INSERT INTO student ("Phone_Number", "Password", "Registration", "Name") VALUES (%s, %s, %s, %s)'
-        values = (phone_number, password, registration, student.name)
+        values = (phone_number, password, registration, name)
 
         try:
             with Connection() as db:

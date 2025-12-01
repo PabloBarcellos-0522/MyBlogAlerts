@@ -2,6 +2,7 @@ from typing import List, Optional
 from src.domain.models.Discipline import Discipline
 from src.domain.models.Post import Post
 from src.domain.services.Scraping_Service import ScrapingService
+from src.infrastructure.scraping.Crawler_Students import CrawlerStudents
 from src.infrastructure.scraping.Scraping_Login import ScrapingLogin
 from src.infrastructure.scraping.Crawler_Disciplines import CrawlerDisciplines
 from src.infrastructure.scraping.Crawler_Posts import CrawlerPosts
@@ -13,8 +14,13 @@ class ScrapingAdapter(ScrapingService):
     """
     def __init__(self):
         self.page_handler = ScrapingLogin()
+        self.student_crawler = CrawlerStudents(self.page_handler)
         self.discipline_crawler = CrawlerDisciplines(self.page_handler)
         self.post_crawler = CrawlerPosts(self.page_handler)
+
+    def get_student_name(self, registration: str, password: str) -> str:
+        self.page_handler.login(registration, password)
+        return self.student_crawler.get_name()
 
     def login(self, registration: str, password: str) -> None:
         self.page_handler.login(registration, password)

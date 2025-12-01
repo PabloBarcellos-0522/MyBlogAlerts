@@ -19,7 +19,7 @@ class SaveStudent:
         self.student_discipline_repo = student_discipline_repo
         self.scraping_service = scraping_service
 
-    def new_student(self, phone: str, registration: str, password: str) -> Student | str:
+    def new_student(self, student_name: str, phone: str, registration: str, password: str) -> Student | str:
         """
         Validates credentials, checks for existence, and saves a new student.
         """
@@ -44,7 +44,7 @@ class SaveStudent:
                 return 'Usuário já cadastrado'
 
         # Step 3: Save the new student
-        new_stu = Student(phone_number=phone, registration=registration, password=password)
+        new_stu = Student(name=student_name, phone_number=phone, registration=registration, password=password)
         try:
             # The save method in StudentPgRepo doesn't return the student, so we just call it
             self.student_repo.save(new_stu)
@@ -64,7 +64,7 @@ class SaveStudent:
         if not hasattr(self.student_repo, 'find_by_registration'):
             print("Feature not fully implemented: Missing find_by_registration in StudentRepository.")
             return False
-            
+
         student_to_delete = self.student_repo.find_by_registration(registration)
 
         if not student_to_delete:
@@ -80,7 +80,8 @@ class SaveStudent:
                 self.student_discipline_repo.delete_by_student_id(student_id)
                 print(f"Deleted associations for student ID: {student_id}")
             else:
-                print("Warning: Missing delete_by_student_id in StudentDisciplineRepository. Associations may not be deleted.")
+                print(
+                    "Warning: Missing delete_by_student_id in StudentDisciplineRepository. Associations may not be deleted.")
 
             # Step 3: Delete the student
             # Requires delete method to accept an ID or a find_by_id and then delete.

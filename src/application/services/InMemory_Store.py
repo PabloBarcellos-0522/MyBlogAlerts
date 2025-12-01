@@ -59,7 +59,7 @@ class InMemoryStore:
             self.posts = post_repo.get_all()
             print(f"  {len(self.posts or [])} posts loaded.")
             
-            self.student_disciplines = student_discipline_repo.get_all()
+            self.student_disciplines = student_discipline_repo.get_all() or []
             print(f"  {len(self.student_disciplines or [])} associations loaded.")
 
             print("Full synchronization complete.")

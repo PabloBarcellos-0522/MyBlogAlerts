@@ -74,8 +74,8 @@ if __name__ == "__main__":
     def crawler_faculty():
         global running
         # Configuration
-        sleep_time_seconds = 90
-        sync_interval_minutes = 30
+        sleep_time_seconds = 120
+        sync_interval_minutes = 60
         cycles_for_resync = (sync_interval_minutes * 60) / sleep_time_seconds
 
         # Initial full sync before starting the loop
@@ -136,7 +136,8 @@ if __name__ == "__main__":
                     print(f"\nPhone: {phone}\nRegistration: {faculty_registration}")
                     resp = input('Confirm data? (Y/n): ')
                     if resp.lower() != 'n':
-                        result = register_student_use_case.new_student(phone, faculty_registration, password)
+                        name = ScrapingAdapter().get_student_name(faculty_registration, password)
+                        result = register_student_use_case.new_student(name, phone, faculty_registration, password)
                         if isinstance(result, Student):
                             print('Student registered successfully! Triggering data resynchronization...')
                             perform_full_sync()  # Resync cache

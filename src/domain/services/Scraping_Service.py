@@ -35,3 +35,7 @@ class ScrapingService(ABC):
         :return: A list of Post objects.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def get_student_name(self, registration: str, password: str) -> str:
+        raise NotImplementedError
