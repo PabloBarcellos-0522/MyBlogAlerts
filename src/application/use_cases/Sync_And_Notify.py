@@ -87,7 +87,8 @@ class SyncAndNotifyUseCase:
         for student in students:
             print(f"\nProcessing student: {student.name}")
             try:
-                self.scraping_service.login(student.registration, student.password)
+                if not self.scraping_service.login(student.registration, student.password):
+                    continue
                 self._sync_student_disciplines(student)
 
                 student_discipline_ids = {

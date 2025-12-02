@@ -1,3 +1,4 @@
+import time
 from typing import List
 from bs4 import BeautifulSoup
 from src.domain.models import Post
@@ -12,11 +13,12 @@ class CrawlerPosts:
         self.page = login
 
     def get_posts(self, discipline: Discipline) -> List[Post]:
+        time.sleep(1)
         try:
             page = 0
             post_list = []
             while True:
-                resp = self.page.session.get(self.page.url_posts.format(discipline.id_cripto, page), timeout=3)
+                resp = self.page.session.get(self.page.url_posts.format(discipline.id_cripto, page), timeout=5)
                 if not resp.text.strip():
                     break
 

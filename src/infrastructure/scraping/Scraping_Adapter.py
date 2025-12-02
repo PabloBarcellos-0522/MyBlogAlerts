@@ -6,6 +6,7 @@ from src.infrastructure.scraping.Crawler_Students import CrawlerStudents
 from src.infrastructure.scraping.Scraping_Login import ScrapingLogin
 from src.infrastructure.scraping.Crawler_Disciplines import CrawlerDisciplines
 from src.infrastructure.scraping.Crawler_Posts import CrawlerPosts
+from bs4 import BeautifulSoup
 
 
 class ScrapingAdapter(ScrapingService):
@@ -22,8 +23,8 @@ class ScrapingAdapter(ScrapingService):
         self.page_handler.login(registration, password)
         return self.student_crawler.get_name()
 
-    def login(self, registration: str, password: str) -> None:
-        self.page_handler.login(registration, password)
+    def login(self, registration: str, password: str) -> Optional[BeautifulSoup]:
+        return self.page_handler.login(registration, password)
 
     def logout(self) -> None:
         self.page_handler.logout()

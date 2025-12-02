@@ -1,3 +1,4 @@
+import time
 from typing import List
 from src.domain.models.Discipline import Discipline
 from src.infrastructure.scraping.Scraping_Login import ScrapingLogin
@@ -10,6 +11,7 @@ class CrawlerDisciplines:
         self.page = login
 
     def get_disciplines(self) -> List[Discipline]:
+        time.sleep(1)
         try:
             disciplines = []
             discipline_id = Utils.get_first_id(self.page.html)

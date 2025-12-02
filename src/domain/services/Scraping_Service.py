@@ -2,11 +2,12 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from src.domain.models.Discipline import Discipline
 from src.domain.models.Post import Post
+from bs4 import BeautifulSoup
 
 
 class ScrapingService(ABC):
     @abstractmethod
-    def login(self, registration: str, password: str) -> None:
+    def login(self, registration: str, password: str) -> Optional[BeautifulSoup]:
         """
         Logs into the academic portal.
         :param registration: The student's registration number.
