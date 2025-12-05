@@ -8,26 +8,55 @@ from src.infrastructure.scraping.Utils import Utils
 import requests
 
 
+# Constants for retry logic
+MAX_PAGES_TO_SCRAPE = 50
+MAX_RETRIES = 3
+RETRY_DELAY_SECONDS = 5
+REQUEST_TIMEOUT_SECONDS = 10
+
+
 class CrawlerPosts:
     def __init__(self, login: ScrapingLogin):
         self.page = login
 
     def get_posts(self, discipline: Discipline) -> List[Post]:
-        time.sleep(1)
-        try:
-            page = 0
-            post_list = []
-            while True:
-                resp = self.page.session.get(self.page.url_posts.format(discipline.id_cripto, page), timeout=5)
-                if not resp.text.strip():
-                    break
+        time.sleep(1)  # Be nice to the server before starting
+        all_posts = []
+        page = 0
+        
+        while page < MAX_PAGES_TO_SCRAPE:
+            resp = self._fetch_page_with_retries(discipline.id_cripto, page)
 
-                html = BeautifulSoup(resp.content, 'html.parser')
-                posts = Utils.catch_posts(html, discipline)
-                post_list.append(posts)
-                page += 1
-            unique_list = [post for sub in post_list for post in sub]
-            return unique_list
-        except requests.exceptions.RequestException as e:
-            print(f"Erro de rede: {e}\n\nSeguindo programa. . .")
-            return []
+            if resp is None:
+                break
+
+            if not resp.text.strip():
+                break
+
+            html = BeautifulSoup(resp.content, 'html.parser')
+            posts = Utils.catch_posts(html, discipline)
+
+            if not posts:
+                break
+
+            all_posts.extend(posts)
+            page += 1
+
+        return all_posts
+
+    def _fetch_page_with_retries(self, discipline_id: str, page: int) -> requests.Response | None:
+        for attempt in range(MAX_RETRIES):
+            try:
+                resp = self.page.session.get(
+                    self.page.url_posts.format(discipline_id, page),
+                    timeout=REQUEST_TIMEOUT_SECONDS
+                )
+                resp.raise_for_status()
+                return resp
+            except requests.exceptions.RequestException as e:
+                print(f"Erro de rede ao buscar posts (tentativa {attempt + 1}/{MAX_RETRIES}): {e}")
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_DELAY_SECONDS)
+        
+        print(f"Máximo de tentativas atingido para a página {page}. Desistindo da disciplina atual.")
+        return None
