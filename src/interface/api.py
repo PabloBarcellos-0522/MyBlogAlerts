@@ -150,7 +150,7 @@ def health_check():
 
 @app.get("/notas", summary="Busca as notas de um aluno via WhatsApp")
 def get_grades_endpoint(
-        sender_phone: str = Query(..., alias="senderPhone"),
+        sender_phone: str = Query(..., alias="from"),
 ):
     uc: GetStudentGrades = dependencies['get_grades_use_case']
     response_message = uc.execute(sender_phone)
