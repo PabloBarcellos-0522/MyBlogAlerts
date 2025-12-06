@@ -32,7 +32,7 @@ class ScrapingLogin:
                 self.resp = self.session.post(self.url, data=self.json_data)
                 if self.resp.status_code == 200:
                     self.html = BeautifulSoup(self.resp.content, 'html.parser')
-                    return self.html
+                    return self.session, self.html
                 else:
                     print(f"Erro ao tentar fazer login tentativa {self.recovery_attempts}/{self.max_attempts}")
                     self.recovery_attempts += 1
@@ -42,7 +42,7 @@ class ScrapingLogin:
                 self.recovery_attempts += 1
 
         print("Número máximo de tentativas de login atingido. Falha no login.")
-        return None
+        return None, None
 
     def logout(self):
         try:

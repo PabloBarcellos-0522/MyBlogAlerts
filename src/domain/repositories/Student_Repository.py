@@ -31,6 +31,15 @@ class StudentRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_by_phone_number(self, phone_number: str) -> Optional[Student]:
+        """
+        Finds a student by their phone number.
+        :param phone_number: The phone number to search for.
+        :return: A Student object or None if not found.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def save(self, student: Student) -> None:
         """
         Saves a student to the database.

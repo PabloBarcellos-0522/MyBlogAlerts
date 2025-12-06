@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from src.domain.models.Discipline import Discipline
 from src.domain.models.Post import Post
 from src.domain.models.Student import Student
@@ -17,9 +17,14 @@ class InMemoryStore:
 
     def __init__(self):
         self.students: List[Student] = []
+        self._students_by_phone: Dict[str, Student] = {}  # Index for fast lookups
         self.disciplines: List[Discipline] = []
         self.posts: List[Post] = []
         self.student_disciplines: List[StudentDiscipline] = []
+
+    def get_student_by_phone(self, phone_number: str) -> Optional[Student]:
+        """Gets a student by phone number from the in-memory cache."""
+        return self._students_by_phone.get(phone_number)
 
     def get_discipline_by_id(self, discipline_id: int) -> Optional[Discipline]:
         for discipline in self.disciplines:
@@ -51,7 +56,8 @@ class InMemoryStore:
         print("Performing full data synchronization with the database...")
         try:
             self.students = student_repo.get_all()
-            print(f"  {len(self.students or [])} students loaded.")
+            self._students_by_phone = {student.phone_number: student for student in self.students}
+            print(f"  {len(self.students or [])} students loaded and indexed by phone.")
 
             self.disciplines = discipline_repo.get_all()
             print(f"  {len(self.disciplines or [])} disciplines loaded.")

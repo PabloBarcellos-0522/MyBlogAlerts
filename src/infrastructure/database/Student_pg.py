@@ -8,12 +8,23 @@ from cryptography.fernet import Fernet
 import base64
 import psycopg2
 
+from src.application.services.InMemory_Store import InMemoryStore
+
 
 class StudentPgRepository(StudentRepository):
 
-    def __init__(self):
+    def __init__(self, in_memory_store: InMemoryStore):
         load_dotenv()
         self.SECRET_KEY = Fernet(os.getenv("WEB_SCRAPER_SECRET_KEY"))
+        self.store = in_memory_store
+
+    def get_by_phone_number(self, phone_number: str) -> Optional[Student]:
+        """
+        Finds a student by their phone number from the in-memory cache.
+        This operation is fast and does not query the database.
+        """
+        print(f"Searching for student with phone {phone_number} in cache.")
+        return self.store.get_student_by_phone(phone_number)
 
     def get_all(self) -> Optional[List[Student]]:
         query = 'SELECT "idStudent", "Phone_Number", "Password", "Name", "Registration" FROM student;'
@@ -32,8 +43,11 @@ class StudentPgRepository(StudentRepository):
                     phone = self.SECRET_KEY.decrypt(base64.urlsafe_b64decode(row[1].encode("utf-8"))).decode("utf-8")
                     password = self.SECRET_KEY.decrypt(base64.urlsafe_b64decode(row[2].encode("utf-8"))).decode("utf-8")
                     name = self.SECRET_KEY.decrypt(base64.urlsafe_b64decode(row[3].encode("utf-8"))).decode("utf-8")
-                    registration = self.SECRET_KEY.decrypt(base64.urlsafe_b64decode(row[4].encode("utf-8"))).decode("utf-8")
-                    students.append(Student(phone_number=phone, registration=registration, password=password, id_student=id_s, name=name))
+                    registration = self.SECRET_KEY.decrypt(base64.urlsafe_b64decode(row[4].encode("utf-8"))).decode(
+                        "utf-8")
+                    students.append(
+                        Student(phone_number=phone, registration=registration, password=password, id_student=id_s,
+                                name=name))
                 except Exception:
                     print(f"Warning: Could not decrypt data for student ID {row[0]}. Skipping.")
                     continue
@@ -66,13 +80,10 @@ class StudentPgRepository(StudentRepository):
             return None
 
     def find_by_registration(self, registration: str) -> Optional[Student]:
-        # This is inefficient as it requires fetching all students.
-        # A better approach would be to have a searchable, encrypted column,
-        # but for this project's scale, fetching all is a viable, secure alternative to storing searchable encrypted data.
-        all_students = self.get_all()
-        if not all_students:
+        print(f"Searching for student with registration {registration} in cache.")
+        if not self.store.students:
             return None
-        for student in all_students:
+        for student in self.store.students:
             if student.registration == registration:
                 return student
         return None
@@ -117,7 +128,8 @@ class StudentPgRepository(StudentRepository):
             print(f"Failed to change password: {e}")
 
     def change_registration(self, student_id: int, registration: str) -> None:
-        registration_enc = base64.urlsafe_b64encode(self.SECRET_KEY.encrypt(registration.encode('utf-8'))).decode("utf-8")
+        registration_enc = base64.urlsafe_b64encode(self.SECRET_KEY.encrypt(registration.encode('utf-8'))).decode(
+            "utf-8")
         query = 'UPDATE student SET "Registration" = %s WHERE "idStudent" = %s;'
         try:
             with Connection() as db:
