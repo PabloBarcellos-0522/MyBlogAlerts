@@ -19,13 +19,13 @@ class CrawlerPosts:
     def __init__(self, login: ScrapingLogin):
         self.page = login
 
-    def get_posts(self, discipline: Discipline) -> List[Post]:
+    def get_posts(self, session: requests.Session, discipline: Discipline) -> List[Post]:
         time.sleep(1)  # Be nice to the server before starting
         all_posts = []
         page = 0
         
         while page < MAX_PAGES_TO_SCRAPE:
-            resp = self._fetch_page_with_retries(discipline.id_cripto, page)
+            resp = self._fetch_page_with_retries(session, discipline.id_cripto, page)
 
             if resp is None:
                 break
@@ -44,10 +44,10 @@ class CrawlerPosts:
 
         return all_posts
 
-    def _fetch_page_with_retries(self, discipline_id: str, page: int) -> requests.Response | None:
+    def _fetch_page_with_retries(self, session: requests.Session, discipline_id: str, page: int) -> requests.Response | None:
         for attempt in range(MAX_RETRIES):
             try:
-                resp = self.page.session.get(
+                resp = session.get(
                     self.page.url_posts.format(discipline_id, page),
                     timeout=REQUEST_TIMEOUT_SECONDS
                 )

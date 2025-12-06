@@ -1,7 +1,8 @@
 import threading
 import time
 from typing import List, Callable, Optional
-
+import requests
+from bs4 import BeautifulSoup
 from src.application.services.InMemory_Store import InMemoryStore
 from src.domain.models.Discipline import Discipline
 from src.domain.models.Student import Student
@@ -60,8 +61,11 @@ class SyncAndNotifyUseCase:
                self.store.posts is None:
                 raise ValueError("In-memory store is in a corrupted state (contains None).")
 
+            # Initialize a set to track posts handled in this cycle
+            processed_posts_this_cycle = set()
+
             # 2. If validation passes, run the main processing logic.
-            self._run_processing_loop()
+            self._run_processing_loop(processed_posts_this_cycle)
 
             # 3. If the logic completes successfully, it means the system is healthy.
             # Reset the counter if it was previously in a failed state.
@@ -76,7 +80,7 @@ class SyncAndNotifyUseCase:
             # Re-raise the exception so the caller knows the execution failed.
             raise
 
-    def _run_processing_loop(self):
+    def _run_processing_loop(self, processed_posts_this_cycle: set):
         """Contains the actual student processing loop."""
         print("Starting synchronization process using in-memory data...")
         students = self.store.students
@@ -86,10 +90,15 @@ class SyncAndNotifyUseCase:
 
         for student in students:
             print(f"\nProcessing student: {student.name}")
+            session: Optional[requests.Session] = None
             try:
-                if not self.scraping_service.login(student.registration, student.password):
+                login_result = self.scraping_service.login(student.registration, student.password)
+                if not login_result:
+                    print(f"Login failed for student {student.name}. Skipping this student.")
                     continue
-                self._sync_student_disciplines(student)
+                session, dashboard_html = login_result
+                
+                self._sync_student_disciplines(student, session, dashboard_html)
 
                 student_discipline_ids = {
                     sd.id_discipline for sd in self.store.student_disciplines if sd.id_student == student.id_student
@@ -102,14 +111,15 @@ class SyncAndNotifyUseCase:
                     print(f"No disciplines found in store for student {student.name}. Skipping post search.")
                     continue
 
-                self._sync_discipline_posts(student_disciplines)
+                self._sync_discipline_posts(student, student_disciplines, processed_posts_this_cycle, session)
 
             except Exception as e:
                 # This handles non-critical errors for a single student (e.g., login failure).
                 # The loop will continue to the next student.
                 print(f"An error occurred while processing student {student.name}: {e}")
             finally:
-                self.scraping_service.logout()
+                if session: # Only logout if login was successful
+                    self.scraping_service.logout()
                 print(f"Finished processing student: {student.name}")
                 time.sleep(1)
 
@@ -132,13 +142,13 @@ class SyncAndNotifyUseCase:
         else:
             print(f"--- Max recovery attempts ({self.max_recovery_attempts}) reached. Backing off. ---")
 
-    def _sync_student_disciplines(self, student: Student):
+    def _sync_student_disciplines(self, student: Student, session: requests.Session, dashboard_html: BeautifulSoup):
         """
         Fetches disciplines from scraping, finds or creates them,
         and associates them with the student, updating the in-memory store.
         """
         print("  Syncing disciplines...")
-        scraped_disciplines = self.scraping_service.get_disciplines()
+        scraped_disciplines = self.scraping_service.get_disciplines(session, dashboard_html)
         if not scraped_disciplines:
             print("  No disciplines found in scraping.")
             return
@@ -165,29 +175,58 @@ class SyncAndNotifyUseCase:
                 self.student_discipline_repo.save(new_association)
                 self.store.add_student_discipline_association(new_association)
 
-    def _sync_discipline_posts(self, disciplines: List[Discipline]):
+    def _sync_discipline_posts(self, current_student: Student, disciplines: List[Discipline], processed_posts_this_cycle: set, session: requests.Session):
         """
-        Fetches posts, and for each new post, saves it, notifies,
-        and updates the in-memory store.
+        Fetches posts, and for each new post, finds all relevant students,
+        notifies them, saves the post, and marks it as processed for this cycle.
         """
         print("  Syncing posts...")
         for discipline in disciplines:
             print(f"    Checking posts for '{discipline.name}'...")
-            scraped_posts = self.scraping_service.get_posts(discipline)
+            scraped_posts = self.scraping_service.get_posts(session, discipline)
             if not scraped_posts:
                 continue
 
             for post in reversed(scraped_posts):
-                existing_post = any(
+                # 1. Check if post is already in the main store (old post)
+                is_old_post = any(
                     p.post_url == post.post_url and p.post_date == post.post_date
                     for p in self.store.posts
                 )
-                if not existing_post:
-                    print(f"      New post found in '{discipline.name}'. Saving and notifying...")
+                if is_old_post:
+                    continue
 
-                    self.post_repo.save(post)
-                    self.store.add_post(post)
+                # 2. Check if post was already handled in this sync cycle
+                if post.post_url in processed_posts_this_cycle:
+                    continue
 
-                    message = f"Novo aviso em *{discipline.name}*:\n\n{post.content}\n\n*Url:* {post.post_url}"
-                    threading.Thread(target=self.notification_service.send_notification, args=(message,)).start()
-                    time.sleep(3)
+                # 3. This is a genuinely new post for this cycle. Process it.
+                print(f"      New post found in '{discipline.name}'. Notifying all relevant students...")
+
+                # Find all students for this discipline
+                target_student_ids = {
+                    sd.id_student
+                    for sd in self.store.student_disciplines
+                    if sd.id_discipline == discipline.id_discipline
+                }
+                target_students = [s for s in self.store.students if s.id_student in target_student_ids]
+
+                if not target_students:
+                    print("        Warning: New post found but no students are associated with the discipline.")
+                    continue
+                
+                # Send notifications to all target students
+                message = f"Novo aviso em *{discipline.name}*:\n\n{post.content}\n\n*Url:* {post.post_url}"
+                for student_to_notify in target_students:
+                    print(f"        Sending DM to {student_to_notify.name} ({student_to_notify.phone_number})")
+                    # Send direct message using the notification service
+                    threading.Thread(target=self.notification_service.student_msg, args=(student_to_notify.phone_number, message)).start()
+                    time.sleep(1) # Small delay to avoid rate-limiting
+
+                # 4. Save the post to DB and main store
+                self.post_repo.save(post)
+                self.store.add_post(post)
+
+                # 5. Mark post as processed for this cycle to avoid duplicate notifications
+                processed_posts_this_cycle.add(post.post_url)
+                time.sleep(3) # A longer delay after a batch of notifications for a new post
