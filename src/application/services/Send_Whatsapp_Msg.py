@@ -10,6 +10,7 @@ class WhatsappNotificationService(NotificationService):
         load_dotenv()
         self.connection = requests.session()
         self.url = os.getenv('API_URL')
+        self.api_key = os.getenv('API_KEY')
         self.group_id = os.getenv('GROUP_ID')
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -41,16 +42,20 @@ class WhatsappNotificationService(NotificationService):
 
     def student_msg(self, phone: str, msg: str):
         """Sends a direct message to a student."""
-        payload = {
-            "chatId": f"{phone}@c.us",
-            "message": msg,
-            "linkPreview": False
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": self.api_key
         }
-        headers = {'Content-Type': 'application/json'}
+        payload = {
+            "number": phone,
+            "message": msg
+        }
+
+        url = self.url + "send/text"
 
         for attempt in range(self.max_retries):
             try:
-                response = self.connection.post(self.url, json=payload, headers=headers)
+                response = self.connection.post(url, headers=headers, json=payload)
                 response.raise_for_status()
                 print(f"Direct message to {phone} sent successfully.")
                 return
