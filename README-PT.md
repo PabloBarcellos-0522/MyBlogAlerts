@@ -64,7 +64,7 @@ WEB_SCRAPER_SECRET_KEY = Chave para criptografia dos dados (de preferencia gerad
 ### 3. Execute o projeto
 
 ```bash
-python -m src.interface.Cli
+uvicorn src.interface.api:app --reload
 ```
 
 ---
