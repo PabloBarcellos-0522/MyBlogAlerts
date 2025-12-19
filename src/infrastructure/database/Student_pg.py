@@ -80,15 +80,31 @@ class StudentPgRepository(StudentRepository):
             return None
 
     def find_by_registration(self, registration: str) -> Optional[Student]:
+        # Primeiro, checa o cache para uma busca rápida
         print(f"Searching for student with registration {registration} in cache.")
-        if not self.store.students:
+        if self.store.students:
+            for student in self.store.students:
+                if student.registration == registration:
+                    print("Found student in cache.")
+                    return student
+
+        # Se não estiver no cache, busca no banco de dados como fallback.
+        # Nota: Isso é ineficiente devido à criptografia, mas é a única maneira com o design atual.
+        print(f"Student not in cache. Querying database for registration {registration}.")
+        all_students = self.get_all()
+        if not all_students:
             return None
-        for student in self.store.students:
+
+        for student in all_students:
             if student.registration == registration:
+                print("Found student in database.")
+                # Opcional: Adicionar ao cache para futuras buscas.
+                # self.store.add_student(student)
                 return student
+
         return None
 
-    def save(self, student: Student) -> None:
+    def save(self, student: Student) -> Student:
         name = self.SECRET_KEY.encrypt(student.name.encode('utf-8'))
         password = self.SECRET_KEY.encrypt(student.password.encode('utf-8'))
         registration = self.SECRET_KEY.encrypt(student.registration.encode('utf-8'))
@@ -99,12 +115,24 @@ class StudentPgRepository(StudentRepository):
         registration = base64.urlsafe_b64encode(registration).decode("utf-8")
         phone_number = base64.urlsafe_b64encode(phone_number).decode("utf-8")
 
-        query = 'INSERT INTO student ("Phone_Number", "Password", "Registration", "Name") VALUES (%s, %s, %s, %s)'
+        query = 'INSERT INTO student ("Phone_Number", "Password", "Registration", "Name") VALUES (%s, %s, %s, %s) RETURNING "idStudent";'
         values = (phone_number, password, registration, name)
 
         try:
             with Connection() as db:
                 db.run_query(query, values)
+                new_id = db.catch_one()
+
+            if new_id and new_id[0]:
+                student.id_student = new_id[0]
+                # Adiciona o novo aluno ao cache para manter a consistência
+                if self.store.students is None:
+                    self.store.students = []
+                self.store.students.append(student)
+                print(f"Student {student.name} saved to DB with ID {student.id_student} and added to cache.")
+                return student
+            else:
+                raise Exception("Falha ao recuperar o ID do aluno recém-salvo.")
         except Exception as e:
             print(f"Failed to save student: {e}")
             raise e
@@ -150,6 +178,14 @@ class StudentPgRepository(StudentRepository):
         try:
             with Connection() as db:
                 db.run_query(query, (student_id,))
+            
+            if self.store.students:
+                initial_count = len(self.store.students)
+                self.store.students = [s for s in self.store.students if s.id_student != student_id]
+                if len(self.store.students) < initial_count:
+                    print(f"Student with ID {student_id} removed from cache.")
+            print(f"Student with ID {student_id} deleted from DB.")
         except Exception as e:
             print(f"Failed to delete student: {e}")
             raise e
+

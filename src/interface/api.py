@@ -1,8 +1,9 @@
 import threading
 from datetime import datetime
 from time import sleep
-from typing import Dict, Any
-
+from typing import Dict, Any, Annotated
+import os
+from dotenv import load_dotenv
 import uvicorn
 from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
@@ -11,7 +12,7 @@ from pydantic import BaseModel
 from src.application.services.InMemory_Store import InMemoryStore
 from src.application.services.Send_Whatsapp_Msg import WhatsappNotificationService
 from src.application.use_cases.Get_Student_Grades import GetStudentGrades
-from src.application.use_cases.Save_Student import SaveStudent
+from src.application.use_cases.Save_Student import SaveStudent, StudentCreationError
 from src.application.use_cases.Sync_And_Notify import SyncAndNotifyUseCase
 from src.domain.models.Student import Student
 from src.domain.services.Scraping_Service import ScrapingService
@@ -21,11 +22,15 @@ from src.infrastructure.database.Student_Discipline_pg import StudentDisciplineP
 from src.infrastructure.database.Student_pg import StudentPgRepository
 from src.infrastructure.scraping.Scraping_Adapter import ScrapingAdapter
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends
 
 # --- Global Services & State ---
 in_memory_store = InMemoryStore()
 dependencies: Dict[str, Any] = {}
 running_thread = True
+scraping_lock = threading.Lock()
 
 
 # --- Helper & Background Functions ---
@@ -67,11 +72,12 @@ def crawler_loop():
         if not (23 <= now.hour or now.hour < 5):  # Quiet hours
             print(
                 f"\n--- Cycle {cycle_count}/{int(cycles_for_resync)} started at: {now.strftime('%Y-%m-%d %H:%M:%S')} ---")
-            try:
-                sync_use_case.execute()
-                print(f"--- Cycle finished successfully. Next check in {sleep_time_seconds} seconds. ---")
-            except Exception:
-                print(f"--- Cycle failed. See logs above. Next check in {sleep_time_seconds} seconds. ---")
+            with scraping_lock:
+                try:
+                    sync_use_case.execute()
+                    print(f"--- Cycle finished successfully. Next check in {sleep_time_seconds} seconds. ---")
+                except Exception:
+                    print(f"--- Cycle failed. See logs above. Next check in {sleep_time_seconds} seconds. ---")
             cycle_count += 1
         else:
             print(f"Quiet hours. Skipping synchronization. Current time: {now.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -135,11 +141,28 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+origins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:8800",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
 
 # --- API Endpoints ---
 class StudentCreate(BaseModel):
     phone: str
     faculty_registration: str
+    password: str
+
+
+class StudentDelete(BaseModel):
     password: str
 
 
@@ -157,36 +180,81 @@ def get_grades_endpoint(
     return {"data": response_message}
 
 
-@app.post("/students", summary="Registra um novo aluno")
-def create_student(student_data: StudentCreate):
-    uc: SaveStudent = dependencies['save_student_use_case']
-    scraping: ScrapingService = dependencies['scraping_service']
-    try:
-        name = scraping.get_student_name(student_data.faculty_registration, student_data.password)
-        if not name:
-            raise HTTPException(status_code=401, detail="Login failed. Check registration and password.")
+auth_scheme = HTTPBearer()
 
-        result = uc.new_student(name, student_data.phone, student_data.faculty_registration, student_data.password)
-        if isinstance(result, Student):
-            perform_full_sync_wrapper()  # Resync cache
-            return {"status": "success", "detail": f"Student '{result.name}' registered.",
-                    "student_id": result.id_student}
-        else:
-            raise HTTPException(status_code=400, detail=result)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/students", summary="Registra um novo aluno")
+def create_student(
+        student_data: StudentCreate,
+        token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)]
+):
+    load_dotenv()
+    expected_token = os.getenv('ACESS_TOKEN')
+
+    if not expected_token:
+        raise HTTPException(status_code=500, detail="Variável de ambiente ACESS_TOKEN não configurada no servidor.")
+
+    if token.credentials != expected_token:
+        raise HTTPException(status_code=401, detail="Token de acesso inválido.")
+
+    uc: SaveStudent = dependencies['save_student_use_case']
+    with scraping_lock:
+        try:
+            result = uc.new_student(
+                phone=student_data.phone,
+                faculty_registration=student_data.faculty_registration,
+                password=student_data.password
+            )
+
+            if isinstance(result, Student):
+                perform_full_sync_wrapper()  # Resync cache
+                return {"status": "success", "detail": f"Aluno '{result.name}' registrado.",
+                        "student_id": result.id_student}
+            else:
+                # Se não for um objeto Student, é uma string de erro (ex: "aluno já existe" ou "login falhou")
+                # Usamos 401 para falha de login e 409 para conflito.
+                status_code = 401 if "credenciais" in result or "login" in result.lower() else 409
+                raise HTTPException(status_code=status_code, detail=result)
+
+        except StudentCreationError as e:
+            # Captura a exceção específica de falha de sincronização do use case
+            raise HTTPException(status_code=500, detail=str(e))
+        except HTTPException as e:
+            # Propaga outras exceções HTTP
+            raise e
+        except Exception as e:
+            # Captura todas as outras exceções inesperadas
+            raise HTTPException(status_code=500, detail=f"Um erro inesperado ocorreu no servidor: {e}")
 
 
 @app.delete("/students/{registration}", summary="Remove um aluno")
-def delete_student(registration: str):
+def delete_student(
+        registration: str,
+        delete_data: StudentDelete,
+        token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)]
+):
+    load_dotenv()
+    expected_token = os.getenv('ACESS_TOKEN')
+
+    if not expected_token:
+        raise HTTPException(status_code=500, detail="Variável de ambiente ACESS_TOKEN não configurada no servidor.")
+
+    if token.credentials != expected_token:
+        raise HTTPException(status_code=401, detail="Token de acesso inválido.")
+
     uc: SaveStudent = dependencies['save_student_use_case']
-    was_deleted = uc.del_student(registration)
-    if was_deleted:
+    
+    with scraping_lock:
+        result = uc.del_student(registration, delete_data.password)
+
+    if result is True:
         perform_full_sync_wrapper()  # Resync cache
-        return {"status": "success", "detail": f"Student with registration {registration} deleted."}
-    else:
+        return {"status": "success", "detail": f"Aluno com matrícula {registration} removido."}
+    elif result is False:
         raise HTTPException(status_code=404,
-                            detail=f"Student with registration {registration} not found or could not be deleted.")
+                            detail=f"Aluno com matrícula {registration} não encontrado.")
+    else:  # É uma string de erro
+        raise HTTPException(status_code=401, detail=result)
 
 
 # --- Main entry point for uvicorn ---
