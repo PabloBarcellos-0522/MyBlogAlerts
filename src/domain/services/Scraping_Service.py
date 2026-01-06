@@ -55,3 +55,13 @@ class ScrapingService(ABC):
         :return: A dictionary where keys are discipline names and values are lists of grades.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def get_absences(self, username: str, password: str) -> Dict[str, Dict[str, str]]:
+        """
+        Scrapes and returns the absences for a student.
+        :param username: The student's username/registration.
+        :param password: The student's password.
+        :return: A dictionary where keys are discipline names and values are dicts of absences.
+        """
+        raise NotImplementedError

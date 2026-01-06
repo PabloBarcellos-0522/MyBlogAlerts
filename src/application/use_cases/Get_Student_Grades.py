@@ -32,11 +32,15 @@ class GetStudentGrades:
             av1 = grades_dict.get('AV1') or '-'
             av2 = grades_dict.get('AV2') or '-'
             mp = grades_dict.get('MP') or '-'
+            pf = grades_dict.get('PF') or '-'
             final = grades_dict.get('FINAL') or '-'
+            resultado = grades_dict.get('RESULTADO') or '-'
 
             response_message += f"- AV1: *{av1}*\n"
             response_message += f"- AV2: *{av2}*\n"
             response_message += f"- MP: *{mp}*\n"
-            response_message += f"- FINAL: *{final}*\n\n"
+            response_message += f"- PF: *{pf}*\n"
+            response_message += f"- FINAL: *{final}*\n"
+            response_message += f"- Resultado: *{resultado}*\n\n"
 
         return response_message
