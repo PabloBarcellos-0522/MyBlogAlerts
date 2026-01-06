@@ -11,6 +11,7 @@ from pydantic import BaseModel
 # --- Layer Imports ---
 from src.application.services.InMemory_Store import InMemoryStore
 from src.application.services.Send_Whatsapp_Msg import WhatsappNotificationService
+from src.application.use_cases.Get_Student_Absences import GetStudentAbsences
 from src.application.use_cases.Get_Student_Grades import GetStudentGrades
 from src.application.use_cases.Save_Student import SaveStudent, StudentCreationError
 from src.application.use_cases.Sync_And_Notify import SyncAndNotifyUseCase
@@ -119,6 +120,10 @@ async def lifespan(app: FastAPI):
         scraping_service=dependencies['scraping_service'],
         student_repository=dependencies['student_repo']
     )
+    dependencies['get_absences_use_case'] = GetStudentAbsences(
+        scraping_service=dependencies['scraping_service'],
+        student_repository=dependencies['student_repo']
+    )
 
     print("API Startup: Performing initial data synchronization...")
     perform_full_sync_wrapper()
@@ -194,8 +199,8 @@ def get_grades_endpoint(
     return {"data": response_message}
 
 
-@app.get("/registrar", summary="retorna o link da página de registro")
-def get_grades_endpoint(
+@app.get("/faltas", summary="Busca as faltas de um aluno via WhatsApp")
+def get_absences_endpoint(
         token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)],
         sender_phone: str = Query(..., alias="from"),
 ):
@@ -207,14 +212,36 @@ def get_grades_endpoint(
 
     if token.credentials != expected_token:
         raise HTTPException(status_code=401, detail="Token de acesso inválido.")
+
+    uc: GetStudentAbsences = dependencies['get_absences_use_case']
+    response_message = uc.execute(sender_phone)
+    return {"data": response_message}
+
+
+@app.get("/registrar", summary="retorna o link da página de registro")
+def get_register_url_endpoint(
+        token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)],
+        sender_phone: str = Query(..., alias="from"),
+):
+    load_dotenv()
+    expected_token = os.getenv('ACESS_TOKEN')
+    register_page_url = os.getenv('REGISTER_PAGE_URL')
+
+    if not expected_token:
+        raise HTTPException(status_code=500, detail="Variável de ambiente ACESS_TOKEN não configurada no servidor.")
+
+    if token.credentials != expected_token:
+        raise HTTPException(status_code=401, detail="Token de acesso inválido.")
     
 
     uc: StudentPgRepository = dependencies['student_repo']
 
-    if uc.get_by_phone_number(sender_phone) is not None:
-        return {"data": origin_link}
+    print(sender_phone)
+    print(uc.get_by_phone_number(sender_phone))
+    if uc.get_by_phone_number(sender_phone) is None:
+        return {"data": "Olá!, Você pode se registrar no MyBlogAlerts pelo site:\n\n" + register_page_url}
     else:
-        return {"data": "Usuário já registrado no MyBlogAlerts. site: " + origin_link}
+        return {"data": "Usuário já registrado no MyBlogAlerts. Página de registro: \n\n" + register_page_url}
 
 
 
