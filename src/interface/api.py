@@ -141,9 +141,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+load_dotenv()
+origin_link = os.getenv('REGISTER_PAGE')
+print(origin_link)
 origins = [
-    "http://127.0.0.1:5500",
-    "http://localhost:8800",
+    origin_link
 ]
 
 app.add_middleware(
@@ -166,21 +168,54 @@ class StudentDelete(BaseModel):
     password: str
 
 
-@app.get("/health", summary="Health check endpoint")
+auth_scheme = HTTPBearer()
+
+@app.get("/", summary="Health check endpoint")
 def health_check():
     return {"status": "ok"}
 
 
 @app.get("/notas", summary="Busca as notas de um aluno via WhatsApp")
 def get_grades_endpoint(
+        token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)],
         sender_phone: str = Query(..., alias="from"),
 ):
+    load_dotenv()
+    expected_token = os.getenv('ACESS_TOKEN')
+
+    if not expected_token:
+        raise HTTPException(status_code=500, detail="Variável de ambiente ACESS_TOKEN não configurada no servidor.")
+
+    if token.credentials != expected_token:
+        raise HTTPException(status_code=401, detail="Token de acesso inválido.")
+
     uc: GetStudentGrades = dependencies['get_grades_use_case']
     response_message = uc.execute(sender_phone)
     return {"data": response_message}
 
 
-auth_scheme = HTTPBearer()
+@app.get("/registrar", summary="retorna o link da página de registro")
+def get_grades_endpoint(
+        token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)],
+        sender_phone: str = Query(..., alias="from"),
+):
+    load_dotenv()
+    expected_token = os.getenv('ACESS_TOKEN')
+
+    if not expected_token:
+        raise HTTPException(status_code=500, detail="Variável de ambiente ACESS_TOKEN não configurada no servidor.")
+
+    if token.credentials != expected_token:
+        raise HTTPException(status_code=401, detail="Token de acesso inválido.")
+    
+
+    uc: StudentPgRepository = dependencies['student_repo']
+
+    if uc.get_by_phone_number(sender_phone) is not None:
+        return {"data": origin_link}
+    else:
+        return {"data": "Usuário já registrado no MyBlogAlerts. site: " + origin_link}
+
 
 
 @app.post("/students", summary="Registra um novo aluno")
@@ -211,19 +246,14 @@ def create_student(
                 return {"status": "success", "detail": f"Aluno '{result.name}' registrado.",
                         "student_id": result.id_student}
             else:
-                # Se não for um objeto Student, é uma string de erro (ex: "aluno já existe" ou "login falhou")
-                # Usamos 401 para falha de login e 409 para conflito.
                 status_code = 401 if "credenciais" in result or "login" in result.lower() else 409
                 raise HTTPException(status_code=status_code, detail=result)
 
         except StudentCreationError as e:
-            # Captura a exceção específica de falha de sincronização do use case
             raise HTTPException(status_code=500, detail=str(e))
         except HTTPException as e:
-            # Propaga outras exceções HTTP
             raise e
         except Exception as e:
-            # Captura todas as outras exceções inesperadas
             raise HTTPException(status_code=500, detail=f"Um erro inesperado ocorreu no servidor: {e}")
 
 
@@ -253,7 +283,7 @@ def delete_student(
     elif result is False:
         raise HTTPException(status_code=404,
                             detail=f"Aluno com matrícula {registration} não encontrado.")
-    else:  # É uma string de erro
+    else:
         raise HTTPException(status_code=401, detail=result)
 
 
