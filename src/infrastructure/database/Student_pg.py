@@ -26,7 +26,7 @@ class StudentPgRepository(StudentRepository):
         print(f"Searching for student with phone {phone_number} in cache.")
         return self.store.get_student_by_phone(phone_number)
 
-    def get_all(self) -> Optional[List[Student]]:
+    def get_all(self) -> List[Student]:
         query = 'SELECT "idStudent", "Phone_Number", "Password", "Name", "Registration" FROM student;'
         students = []
         try:
@@ -35,7 +35,7 @@ class StudentPgRepository(StudentRepository):
                 resp = db.catch_all()
 
             if not resp:
-                return None
+                return []
 
             for row in resp:
                 try:
@@ -54,7 +54,7 @@ class StudentPgRepository(StudentRepository):
 
         except psycopg2.OperationalError as e:
             print(f"\tDB Error while fetching students: {e}. Returning empty list.")
-            return None
+            return []
         return students
 
     def get_by_id(self, student_id: int) -> Optional[Student]:
@@ -176,15 +176,18 @@ class StudentPgRepository(StudentRepository):
     def delete(self, student_id: int) -> None:
         query = 'DELETE FROM student WHERE "idStudent" = %s;'
         try:
+            student_to_delete = self.get_by_id(student_id)
+
             with Connection() as db:
                 db.run_query(query, (student_id,))
-            
-            if self.store.students:
-                initial_count = len(self.store.students)
-                self.store.students = [s for s in self.store.students if s.id_student != student_id]
-                if len(self.store.students) < initial_count:
-                    print(f"Student with ID {student_id} removed from cache.")
-            print(f"Student with ID {student_id} deleted from DB.")
+
+            if student_to_delete:
+                if self.store.students:
+                    self.store.students = [s for s in self.store.students if s.id_student != student_id]
+                if student_to_delete.phone_number in self.store._students_by_phone:
+                    del self.store._students_by_phone[student_to_delete.phone_number]
+
+            print(f"Student with ID {student_id} deleted from DB and cache.")
         except Exception as e:
             print(f"Failed to delete student: {e}")
             raise e
