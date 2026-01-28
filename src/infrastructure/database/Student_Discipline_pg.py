@@ -82,8 +82,8 @@ class StudentDisciplinePgRepository(StudentDisciplineRepository):
                 resp = db.catch_all()
         except psycopg2.OperationalError as e:
             print("\tFalha ao obter Student_Disciplines devido a erro de DB. Retornando None.\n")
-        finally:
-            return resp
+        # finally:
+        #     return resp
 
     def get_this_student(self, stu_id: int) -> List[tuple]:
         query = 'SELECT * FROM student_discipline where "Student_idStudent" = %s'
@@ -94,8 +94,8 @@ class StudentDisciplinePgRepository(StudentDisciplineRepository):
                 resp = db.catch_all()
         except psycopg2.OperationalError as e:
             print("\tFalha ao obter Student_Disciplines devido a erro de DB. Retornando None.\n")
-        finally:
-            return resp
+        # finally:
+        #     return resp
 
     def change_student(self, student_id: int, discipline_id: int, new_student_id: int) -> None:
         query = 'UPDATE student_discipline SET "Student_idStudent" = %s WHERE "Student_idStudent" = %s AND "Discipline_idDiscipline" = %s;'

@@ -152,6 +152,29 @@ class SyncAndNotifyUseCase:
         if not scraped_disciplines:
             print("  No disciplines found in scraping.")
             return
+        
+
+        student_discipline_ids = {sd.id_discipline for sd in self.store.student_disciplines if sd.id_student == student.id_student}
+
+        disciplines_of_student = [
+            d for d in self.store.disciplines 
+            if d.id_discipline in student_discipline_ids
+        ]
+
+        scraped_ids = {d.id_cripto for d in scraped_disciplines}
+        subjects_to_remove = [d for d in disciplines_of_student if d.id_cripto not in scraped_ids]
+        ids_to_remove = {d.id_discipline for d in subjects_to_remove}
+
+        print("  Checking for deleted disciplines...")
+        for d in subjects_to_remove:
+            print(f"    Deleting discipline '{student.id_student, d.name}'...")
+            self.student_discipline_repo.delete(student.id_student, d.id_discipline)
+        if (len(ids_to_remove) > 0):
+            self.store.student_disciplines = [
+                sd for sd in self.store.student_disciplines 
+                if sd.id_discipline not in ids_to_remove
+            ]
+            
 
         for scraped_discipline in scraped_disciplines:
             if scraped_discipline.id_cripto is None:
