@@ -182,9 +182,11 @@ app = FastAPI(
 
 load_dotenv()
 origin_link = os.getenv('REGISTER_PAGE')
+register_page_url = os.getenv('REGISTER_PAGE_URL')
 print(origin_link)
 origins = [
-    origin_link
+	origin_link,
+	register_page_url
 ]
 
 app.add_middleware(
