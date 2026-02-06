@@ -408,4 +408,5 @@ def delete_student(
 # --- Main entry point for uvicorn ---
 load_dotenv()
 if __name__ == "__main__":
-    uvicorn.run("api:app", host="0.0.0.0", port=os.getenv('PORT'), reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("api:app", host="0.0.0.0", port=port)
