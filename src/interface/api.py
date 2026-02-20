@@ -1,5 +1,5 @@
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
 from typing import Dict, Any, Annotated
 import os
@@ -7,10 +7,13 @@ from dotenv import load_dotenv
 import uvicorn
 from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
+import random
+import string
 
 # --- Layer Imports ---
 from src.application.services.InMemory_Store import InMemoryStore
 from src.application.services.Send_Whatsapp_Msg import WhatsappNotificationService
+from src.application.use_cases.Get_Student_Absences import GetStudentAbsences
 from src.application.use_cases.Get_Student_Grades import GetStudentGrades
 from src.application.use_cases.Save_Student import SaveStudent, StudentCreationError
 from src.application.use_cases.Sync_And_Notify import SyncAndNotifyUseCase
@@ -31,9 +34,40 @@ in_memory_store = InMemoryStore()
 dependencies: Dict[str, Any] = {}
 running_thread = True
 scraping_lock = threading.Lock()
+verification_codes: Dict[str, Dict[str, str]] = {}
 
 
 # --- Helper & Background Functions ---
+def generate_verification_code(length=6) -> str:
+    """Generates a random, unique verification code."""
+    characters = string.digits
+    while True:
+        code = ''.join(random.choice(characters) for _ in range(length))
+        if code not in verification_codes:
+            return code
+
+
+def cleanup_expired_codes():
+    """Periodically cleans up expired verification codes."""
+    global running_thread
+    while running_thread:
+        now = datetime.now()
+        expired_codes = []
+        # Use a copy of items to avoid runtime errors during iteration
+        for code, info in list(verification_codes.items()):
+            if now - info["timestamp"] > timedelta(minutes=5):
+                expired_codes.append(code)
+
+        for code in expired_codes:
+            try:
+                del verification_codes[code]
+                print(f"Removed expired verification code: {code}")
+            except KeyError:
+                # Code might have been used and deleted by another thread
+                pass
+        sleep(60)  # Run every minute
+
+
 def perform_full_sync_wrapper():
     """A wrapper that uses globally stored dependencies to perform a full sync."""
     if dependencies:
@@ -119,13 +153,18 @@ async def lifespan(app: FastAPI):
         scraping_service=dependencies['scraping_service'],
         student_repository=dependencies['student_repo']
     )
+    dependencies['get_absences_use_case'] = GetStudentAbsences(
+        scraping_service=dependencies['scraping_service'],
+        student_repository=dependencies['student_repo']
+    )
 
     print("API Startup: Performing initial data synchronization...")
     perform_full_sync_wrapper()
 
-    print("API Startup: Starting background crawler thread.")
+    print("API Startup: Starting background threads.")
     running_thread = True
     threading.Thread(target=crawler_loop, daemon=True).start()
+    threading.Thread(target=cleanup_expired_codes, daemon=True).start()
 
     yield
 
@@ -141,9 +180,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+load_dotenv()
+origin_link = os.getenv('REGISTER_PAGE')
+print(origin_link)
 origins = [
-    "http://127.0.0.1:5500",
-    "http://localhost:8800",
+    origin_link
 ]
 
 app.add_middleware(
@@ -162,29 +203,140 @@ class StudentCreate(BaseModel):
     password: str
 
 
+class VerificationData(BaseModel):
+    code: str
+
+
 class StudentDelete(BaseModel):
     password: str
 
 
-@app.get("/health", summary="Health check endpoint")
+auth_scheme = HTTPBearer()
+
+
+@app.get("/", summary="Health check endpoint")
 def health_check():
     return {"status": "ok"}
 
 
 @app.get("/notas", summary="Busca as notas de um aluno via WhatsApp")
 def get_grades_endpoint(
+        token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)],
         sender_phone: str = Query(..., alias="from"),
 ):
+    load_dotenv()
+    expected_token = os.getenv('ACESS_TOKEN')
+
+    if not expected_token:
+        raise HTTPException(status_code=500, detail="Variável de ambiente ACESS_TOKEN não configurada no servidor.")
+
+    if token.credentials != expected_token:
+        raise HTTPException(status_code=401, detail="Token de acesso inválido.")
+
     uc: GetStudentGrades = dependencies['get_grades_use_case']
     response_message = uc.execute(sender_phone)
     return {"data": response_message}
 
 
-auth_scheme = HTTPBearer()
+@app.get("/faltas", summary="Busca as faltas de um aluno via WhatsApp")
+def get_absences_endpoint(
+        token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)],
+        sender_phone: str = Query(..., alias="from"),
+):
+    load_dotenv()
+    expected_token = os.getenv('ACESS_TOKEN')
+
+    if not expected_token:
+        raise HTTPException(status_code=500, detail="Variável de ambiente ACESS_TOKEN não configurada no servidor.")
+
+    if token.credentials != expected_token:
+        raise HTTPException(status_code=401, detail="Token de acesso inválido.")
+
+    uc: GetStudentAbsences = dependencies['get_absences_use_case']
+    response_message = uc.execute(sender_phone)
+    return {"data": response_message}
+
+
+@app.get("/registrar", summary="retorna o link da página de registro")
+def get_register_url_endpoint(
+        token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)],
+        sender_phone: str = Query(..., alias="from"),
+):
+    load_dotenv()
+    expected_token = os.getenv('ACESS_TOKEN')
+    register_page_url = os.getenv('REGISTER_PAGE_URL')
+
+    if not expected_token:
+        raise HTTPException(status_code=500, detail="Variável de ambiente ACESS_TOKEN não configurada no servidor.")
+
+    if token.credentials != expected_token:
+        raise HTTPException(status_code=401, detail="Token de acesso inválido.")
+
+    uc: StudentPgRepository = dependencies['student_repo']
+
+    print(sender_phone)
+    print(uc.get_by_phone_number(sender_phone))
+    if uc.get_by_phone_number(sender_phone) is None:
+        return {"data": "Olá!, Você pode se registrar no MyBlogAlerts pelo site:\n\n" + register_page_url}
+    else:
+        return {"data": "Usuário já registrado no MyBlogAlerts. Página de registro: \n\n" + register_page_url}
 
 
 @app.post("/students", summary="Registra um novo aluno")
 def create_student(
+        verification_data: VerificationData,
+        token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)]
+):
+    load_dotenv()
+    expected_token = os.getenv('ACESS_TOKEN')
+
+    if not expected_token:
+        raise HTTPException(status_code=500, detail="Variável de ambiente ACESS_TOKEN não configurada no servidor.")
+
+    if token.credentials != expected_token:
+        raise HTTPException(status_code=401, detail="Token de acesso inválido.")
+
+    code = verification_data.code
+    if code not in verification_codes:
+        raise HTTPException(status_code=400, detail="Código de verificação inválido ou expirado.")
+
+    stored_info = verification_codes[code]
+    student_data = stored_info["data"]
+    timestamp = stored_info["timestamp"]
+
+    if datetime.now() - timestamp > timedelta(minutes=5):
+        del verification_codes[code]
+        raise HTTPException(status_code=400, detail="Código de verificação expirado.")
+
+    uc: SaveStudent = dependencies['save_student_use_case']
+
+    with scraping_lock:
+        try:
+            result = uc.new_student(
+                phone=student_data["phone"],
+                faculty_registration=student_data["faculty_registration"],
+                password=student_data["password"]
+            )
+
+            if isinstance(result, Student):
+                del verification_codes[code]
+                perform_full_sync_wrapper()
+                return {"status": "success", "detail": f"Aluno '{result.name}' registrado.",
+                        "student_id": result.id_student}
+            else:
+                status_code = 401 if "credenciais" in result or "login" in result.lower() else 409
+                raise HTTPException(status_code=status_code, detail=result)
+
+        except StudentCreationError as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Um erro inesperado ocorreu no servidor: {e}")
+
+
+@app.post("/verification-code", summary="Faz o envio do código de verificação para validar o número")
+def send_verification_code(
         student_data: StudentCreate,
         token: Annotated[HTTPAuthorizationCredentials, Depends(auth_scheme)]
 ):
@@ -197,34 +349,30 @@ def create_student(
     if token.credentials != expected_token:
         raise HTTPException(status_code=401, detail="Token de acesso inválido.")
 
-    uc: SaveStudent = dependencies['save_student_use_case']
-    with scraping_lock:
-        try:
-            result = uc.new_student(
-                phone=student_data.phone,
-                faculty_registration=student_data.faculty_registration,
-                password=student_data.password
-            )
+    student_repo: StudentPgRepository = dependencies['student_repo']
+    if student_repo.get_by_phone_number(
+            student_data.phone) or student_repo.find_by_registration(
+            student_data.faculty_registration):
+        raise HTTPException(status_code=409, detail="Este número de telefone ou matrícula já está em uso.")
 
-            if isinstance(result, Student):
-                perform_full_sync_wrapper()  # Resync cache
-                return {"status": "success", "detail": f"Aluno '{result.name}' registrado.",
-                        "student_id": result.id_student}
-            else:
-                # Se não for um objeto Student, é uma string de erro (ex: "aluno já existe" ou "login falhou")
-                # Usamos 401 para falha de login e 409 para conflito.
-                status_code = 401 if "credenciais" in result or "login" in result.lower() else 409
-                raise HTTPException(status_code=status_code, detail=result)
+    code = generate_verification_code()
+    verification_codes[code] = {
+        "data": {
+            "phone": student_data.phone,
+            "faculty_registration": student_data.faculty_registration,
+            "password": student_data.password
+        },
+        "timestamp": datetime.now()
+    }
 
-        except StudentCreationError as e:
-            # Captura a exceção específica de falha de sincronização do use case
-            raise HTTPException(status_code=500, detail=str(e))
-        except HTTPException as e:
-            # Propaga outras exceções HTTP
-            raise e
-        except Exception as e:
-            # Captura todas as outras exceções inesperadas
-            raise HTTPException(status_code=500, detail=f"Um erro inesperado ocorreu no servidor: {e}")
+    notification_service: WhatsappNotificationService = dependencies['notification_service']
+    message = f"Seu código de verificação do MyBlogAlerts é: *{code}*"
+    try:
+        notification_service.student_msg(student_data.phone, message)
+        return {"status": "success", "detail": "Código de verificação enviado com sucesso."}
+    except Exception as e:
+        del verification_codes[code]
+        raise HTTPException(status_code=500, detail=f"Falha ao enviar o código de verificação: {e}")
 
 
 @app.delete("/students/{registration}", summary="Remove um aluno")
@@ -253,7 +401,7 @@ def delete_student(
     elif result is False:
         raise HTTPException(status_code=404,
                             detail=f"Aluno com matrícula {registration} não encontrado.")
-    else:  # É uma string de erro
+    else:
         raise HTTPException(status_code=401, detail=result)
 
 

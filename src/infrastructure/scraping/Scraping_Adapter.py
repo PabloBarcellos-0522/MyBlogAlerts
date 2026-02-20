@@ -8,6 +8,7 @@ from src.infrastructure.scraping.Scraping_Login import ScrapingLogin
 from src.infrastructure.scraping.Crawler_Disciplines import CrawlerDisciplines
 from src.infrastructure.scraping.Crawler_Posts import CrawlerPosts
 from src.infrastructure.scraping.Crawler_Grades import CrawlerGrades
+from src.infrastructure.scraping.Crawler_Absences import CrawlerAbsences
 from bs4 import BeautifulSoup
 
 
@@ -21,10 +22,15 @@ class ScrapingAdapter(ScrapingService):
         self.discipline_crawler = CrawlerDisciplines(self.page_handler)
         self.post_crawler = CrawlerPosts(self.page_handler)
         self.grades_crawler = CrawlerGrades(self.page_handler)
+        self.absences_crawler = CrawlerAbsences(self.page_handler)
 
     def get_grades(self, registration: str, password: str) -> Dict[str, Dict[str, str]]:
         print(f"ScrapingAdapter: Fetching grades for {registration}.")
         return self.grades_crawler.fetch_grades(registration, password)
+
+    def get_absences(self, registration: str, password: str) -> Dict[str, Dict[str, str]]:
+        print(f"ScrapingAdapter: Fetching absences for {registration}.")
+        return self.absences_crawler.fetch_absences(registration, password)
 
     def get_student_name(self, registration: str, password: str) -> str:
         self.page_handler.login(registration, password)

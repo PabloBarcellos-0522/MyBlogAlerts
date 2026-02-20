@@ -60,7 +60,7 @@ class SaveStudent:
                 login_success = False
 
             if not login_success:
-                return "Falha na validação das credenciais. A senha está incorreta."
+                return "Falha na validação das credenciais. Matrícula ou senha incorretas."
 
             # Se o login for bem-sucedido, busca o aluno para obter o ID
             student_to_delete = self.student_repo.find_by_registration(faculty_registration)

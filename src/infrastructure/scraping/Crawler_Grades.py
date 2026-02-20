@@ -54,7 +54,9 @@ class CrawlerGrades:
             av1_idx = -1
             av2_idx = -1
             mp_idx = -1
+            pf_idx = -1
             final_idx = -1
+            resultado_idx = -1
             discipline_idx = -1
 
             for i, header in enumerate(headers):
@@ -64,8 +66,12 @@ class CrawlerGrades:
                     av2_idx = i
                 elif header == "MP":
                     mp_idx = i
+                elif header == "PF":
+                    pf_idx = i
                 elif header == "Final":
                     final_idx = i
+                elif header == "Resultado":
+                    resultado_idx = i
                 elif "Disciplina" in header:
                     discipline_idx = i  # "Disciplina" for portuguese
 
@@ -77,25 +83,31 @@ class CrawlerGrades:
             for row in table.find("tbody").find_all("tr"):
                 cols = row.find_all("td")
 
-                if len(cols) > max(av1_idx, av2_idx, mp_idx, final_idx, discipline_idx):
+                if len(cols) > max(av1_idx, av2_idx, mp_idx, pf_idx, final_idx, resultado_idx, discipline_idx):
                     discipline_name = cols[discipline_idx].get_text(strip=True)
 
                     av1 = cols[av1_idx].get_text(strip=True) if av1_idx != -1 else ""
                     av2 = cols[av2_idx].get_text(strip=True) if av2_idx != -1 else ""
                     mp = cols[mp_idx].get_text(strip=True) if mp_idx != -1 else ""
+                    pf = cols[pf_idx].get_text(strip=True) if pf_idx != -1 else ""
                     final = cols[final_idx].get_text(strip=True) if final_idx != -1 else ""
+                    resultado = cols[resultado_idx].get_text(strip=True) if resultado_idx != -1 else ""
 
                     # Replace '-' with empty string or None as per requirement for null values
                     av1 = av1 if av1 != '-' else ""
                     av2 = av2 if av2 != '-' else ""
                     mp = mp if mp != '-' else ""
+                    pf = pf if pf != '-' else ""
                     final = final if final != '-' else ""
+                    resultado = resultado if resultado != '-' else ""
 
                     all_grades[discipline_name] = {
                         "AV1": av1,
                         "AV2": av2,
                         "MP": mp,
-                        "FINAL": final
+                        "PF": pf,
+                        "FINAL": final,
+                        "RESULTADO": resultado
                     }
 
         if not all_grades:
