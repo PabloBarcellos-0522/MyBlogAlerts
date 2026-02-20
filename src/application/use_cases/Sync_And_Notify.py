@@ -122,6 +122,7 @@ class SyncAndNotifyUseCase:
                     self.scraping_service.logout()
                 print(f"Finished processing student: {student.name}")
                 time.sleep(1)
+            time.sleep(60)
 
         print("\nSynchronization process finished.")
 
