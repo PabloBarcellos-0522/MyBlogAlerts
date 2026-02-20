@@ -87,7 +87,7 @@ def crawler_loop():
         sleep(1)
 
     sync_use_case: SyncAndNotifyUseCase = dependencies['sync_use_case']
-    sleep_time_seconds = 120
+    sleep_time_seconds = 300
     sync_interval_minutes = 60
     cycles_for_resync = (sync_interval_minutes * 60) / sleep_time_seconds
     cycle_count = 1

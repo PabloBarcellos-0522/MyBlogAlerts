@@ -59,6 +59,8 @@ class Utils:
             'jul': 7, 'ago': 8, 'set': 9, 'out': 10, 'nov': 11, 'dez': 12
         }
 
+        load_dotenv()
+        base_url = os.getenv('BLOG_URL')
         for i in body.find_all('li', class_='timeline-inverted'):
             date_str = i.find('div', class_='timeline-date').text.strip().lower()  # "29 nov"
             
@@ -78,8 +80,8 @@ class Utils:
 
             title = i.find(class_='panel-title').text
 
-            load_dotenv()
-            url = os.getenv('BLOG_URL') + i.find('a', class_='btn')['href']
+            
+            url = base_url + i.find('a', class_='btn')['href']
 
             panel_body = i.find('div', class_='panel-body')
 
